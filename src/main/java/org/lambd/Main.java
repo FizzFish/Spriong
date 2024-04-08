@@ -13,9 +13,9 @@ public class Main {
     public static void main(String[] args) {
 
         SootWorld.v().loadJar("commons-text-1.8.jar");
-        List<SootClass> applicationClasses = Scene.v().getClasses().stream()
-                .filter(SootClass::isApplicationClass).collect(Collectors.toList());
-        System.out.println(applicationClasses.size());
+//        List<SootClass> applicationClasses = Scene.v().getClasses().stream()
+//                .filter(SootClass::isApplicationClass).collect(Collectors.toList());
+//        System.out.println(applicationClasses.size());
 //        applicationClasses.forEach(sootClass -> {
 //            System.out.println(sootClass.getName());
 //            sootClass.getMethods().forEach(method -> {

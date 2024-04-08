@@ -3,14 +3,9 @@ package org.lambd;
 import org.lambd.obj.ConstantObj;
 import org.lambd.obj.FormatObj;
 import org.lambd.obj.Obj;
-import org.lambd.transition.OutSideTransition;
-import org.lambd.transition.Transition;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.Edge;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class StmtVisitor {
     private SpMethod method;
@@ -104,8 +99,8 @@ public class StmtVisitor {
     public void visit(ReturnStmt stmt) {
         Value retVal = stmt.getOp();
         if (retVal instanceof Local local) {
-            Transition transition = new OutSideTransition(-2, false, local);
-            method.addTransition(transition);
+//            Transition transition = new OutSideTransition(-2, false, local);
+//            method.addTransition(transition);
         } else if (retVal instanceof Constant constant){
             // Todo
             ConstantObj constantObj = new ConstantObj(retVal.getType(), method, constant);

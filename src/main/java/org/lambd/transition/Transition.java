@@ -1,6 +1,9 @@
 package org.lambd.transition;
 
-public interface Transition {
-    default void toMatrix() {}
-    default void fromMatrix() {}
+import soot.SootField;
+
+public record Transition(int from, int to) {
+    public String toString() {
+        return "(" + from + ", " + to + ")";
+    }
 }

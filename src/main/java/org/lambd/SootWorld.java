@@ -3,10 +3,8 @@ package org.lambd;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lambd.obj.Obj;
-import org.lambd.transition.InvokeTransition;
-import org.lambd.transition.NewTransition;
-import org.lambd.transition.OutSideTransition;
-import org.lambd.transition.Transition;
+import org.lambd.transition.BaseTransfer;
+import org.lambd.transition.TransferConfig;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -19,7 +17,10 @@ public class SootWorld {
     private static final Logger logger = LogManager.getLogger(SootWorld.class);
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
-    private SootWorld() {}
+    private List<BaseTransfer> baseTransfers;
+    private SootWorld() {
+        baseTransfers = new TransferConfig("src/main/resources/transfer.yml").parse();
+    }
     public static SootWorld v() {
         if (world == null) {
             world = new SootWorld();
@@ -110,51 +111,5 @@ public class SootWorld {
 //            Set<Obj> value = entry.getValue();
 //            System.out.printf("%s => %s\n", key, value);
 //        }
-    }
-    public void showStmts(SootMethod method) {
-        System.out.printf("========%s===========\n", method);
-        visited.add(method);
-        for (Iterator<Unit> it = method.getActiveBody().getUnits().iterator(); it.hasNext();) {
-            Unit unit = it.next();
-            Transition transition = null;
-            if (unit instanceof IdentityStmt identityStmt) {
-                Local lhs = (Local) identityStmt.getLeftOp();
-                Value val = identityStmt.getRightOp();
-                if (val instanceof ParameterRef parameterRef) {
-                    int index = parameterRef.getIndex();
-                    transition = new OutSideTransition(index, true, lhs);
-                } else if (val instanceof ThisRef) {
-                    transition = new OutSideTransition(-1, true, lhs);
-                }
-            } else if (unit instanceof InvokeStmt invokeStmt) {
-                transition = new InvokeTransition(unit);
-            } else if (unit instanceof AssignStmt assignStmt) {
-
-                Value rhs = assignStmt.getRightOp();
-                if (rhs instanceof InvokeExpr invokeExpr) {
-                    transition = new InvokeTransition(unit);
-
-                } else if (rhs instanceof NewExpr newExpr) {
-                    if (assignStmt.getLeftOp() instanceof Local lhs)
-                        transition = new NewTransition(lhs, newExpr.getType());
-                    else {
-                        logger.error("unexpected assignStmt: {}", assignStmt);
-                    }
-                }
-            } else if (unit instanceof ReturnStmt returnStmt) {
-                Value retVal = returnStmt.getOp();
-                if (retVal instanceof Local local) {
-                    transition = new OutSideTransition(-2, false, local);
-                }
-            }
-            if (transition != null) {
-                System.out.println(transition);
-                if (transition instanceof InvokeTransition invokeTransition) {
-                    SootMethod callee = invokeTransition.getCallee();
-                    if (callee !=null && !visited.contains(callee) && callee.getDeclaringClass().isApplicationClass())
-                        showStmts(callee);
-                }
-            }
-        }
     }
 }
