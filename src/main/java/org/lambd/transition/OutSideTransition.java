@@ -1,4 +1,4 @@
-package org.lambd;
+package org.lambd.transition;
 
 import soot.Local;
 
