@@ -2,6 +2,8 @@ package org.lambd.obj;
 
 import org.lambd.SpMethod;
 import soot.Local;
+import soot.SootField;
+import soot.SootMethod;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,5 +61,36 @@ public class MulObjManager implements ObjManager {
                 addObj(to, obj, update);
             });
         }
+    }
+    public void loadField(Local to, Local base, SootField field) {
+        // x = y.f
+
+
+
+
+    }
+    public void loadStaticField(Local to, Class clazz, SootField field) {
+        // x = C.f
+
+    }
+
+    public void storeField(Local base, SootField field, Local from) {
+        // x.f = y
+
+    }
+    public void storeStaticField(Class clazz, SootField field, Local from) {
+        // C.f = y
+
+    }
+    public void loadArray(Local to, Local base) {
+        // x = y[i]
+
+    }
+    public void storeArray(Local base, Local from) {
+        // x[i] = y
+
+    }
+    public void invoke(Local to, Local base, SootMethod method) {
+
     }
 }

@@ -3,6 +3,7 @@ package org.lambd;
 import org.lambd.obj.ConstantObj;
 import org.lambd.obj.FormatObj;
 import org.lambd.obj.Obj;
+import org.lambd.obj.ObjManager;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.Edge;
@@ -48,6 +49,7 @@ public class StmtVisitor {
             }
             return;
         }
+        ObjManager objManager = method.getObjManager();
         if (lhs instanceof Local lvar) {
             if (rhs instanceof Local rvar) {
                 method.copy(rvar, lvar);
@@ -58,12 +60,12 @@ public class StmtVisitor {
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
                 if (fieldRef instanceof InstanceFieldRef instanceFieldRef)
-                    method.loadField(lvar, (Local) instanceFieldRef.getBase(), instanceFieldRef.getField());
+                    objManager.loadField(lvar, (Local) instanceFieldRef.getBase(), instanceFieldRef.getField());
                 else    // x = c.f
-                    method.loadStaticField(lvar, fieldRef.getClass(), fieldRef.getField());
+                    objManager.loadStaticField(lvar, fieldRef.getClass(), fieldRef.getField());
             } else if (rhs instanceof ArrayRef arrayRef) {
                 // x = y[i]
-                method.loadArray(lvar, (Local) arrayRef.getBase());
+                objManager.loadArray(lvar, (Local) arrayRef.getBase());
             } else if (rhs instanceof BinopExpr) {
             } else if (rhs instanceof UnopExpr) {
             } else if (rhs instanceof InstanceOfExpr) {
@@ -74,13 +76,18 @@ public class StmtVisitor {
             }
         } else if (lhs instanceof FieldRef fieldRef) {
             // x.f = y
-            if (fieldRef instanceof InstanceFieldRef instanceFieldRef)
-                method.storeField((Local) instanceFieldRef.getBase(), instanceFieldRef.getField(), rhs);
-            else    // c.f = y
-                method.storeStaticField(fieldRef.getClass(), fieldRef.getField(), rhs);
+            if (fieldRef instanceof InstanceFieldRef instanceFieldRef) {
+                if (rhs instanceof Local rvar)
+                    objManager.storeField((Local) instanceFieldRef.getBase(), instanceFieldRef.getField(), rvar);
+            } else {
+                // c.f = y
+                if (rhs instanceof Local rvar)
+                    objManager.storeStaticField(fieldRef.getClass(), fieldRef.getField(), rvar);
+            }
         } else if (lhs instanceof ArrayRef arrayRef) {
             // x[i] = y
-            method.storeArray((Local) arrayRef.getBase(), (Local) rhs);
+            if (rhs instanceof Local rvar)
+                objManager.storeArray((Local) arrayRef.getBase(), rvar);
         } else {
             System.out.println("unsupported assignment lhs: " + stmt);
         }

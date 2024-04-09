@@ -1,7 +1,6 @@
 package org.lambd;
 
 import org.lambd.obj.*;
-import org.lambd.transition.BaseTransition;
 import soot.*;
 import soot.jimple.*;
 
@@ -94,34 +93,6 @@ public class SpMethod {
         // field ?
         // deep or shallow ?
         objManager.copy(from, to, update);
-    }
-    public void loadField(Local to, Local base, SootField field) {
-        // x = y.f
-
-    }
-    public void loadStaticField(Local to, Class clazz, SootField field) {
-        // x = C.f
-
-    }
-
-    public void storeField(Local base, SootField field, Value from) {
-        // x.f = y
-
-    }
-    public void storeStaticField(Class clazz, SootField field, Value from) {
-        // C.f = y
-
-    }
-    public void loadArray(Local to, Local base) {
-        // x = y[i]
-
-    }
-    public void storeArray(Local base, Local from) {
-        // x[i] = y
-
-    }
-    public void invoke(Local to, Local base, SootMethod method) {
-
     }
 
 }
