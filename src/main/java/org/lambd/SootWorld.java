@@ -2,10 +2,8 @@ package org.lambd;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.lambd.obj.Obj;
-import org.lambd.transition.BaseTransfer;
+import org.lambd.transition.TaintConfig;
 import org.lambd.transition.BaseTransition;
-import org.lambd.transition.TransferConfig;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -19,12 +17,10 @@ public class SootWorld {
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
     private Map<String, List<BaseTransition>> transferMap = new HashMap<>();
+    private Map<String, Integer> sinkIndex = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private SootWorld() {
-        List<BaseTransfer> transfers = new TransferConfig("src/main/resources/transfer.yml").parse();
-        transfers.forEach(transfer -> {
-            transferMap.put(transfer.method, transfer.transitions);
-        });
+        new TaintConfig("src/main/resources/transfer.yml").parse(transferMap, sinkIndex);
     }
     public static SootWorld v() {
         if (world == null) {
