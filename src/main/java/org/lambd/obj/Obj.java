@@ -7,6 +7,7 @@ public class Obj implements Location {
     public Type type;
     public SpMethod method;
     protected int weight;
+    private final Fraction fraction = Fraction.one;
     public Obj(Type type, SpMethod method) {
         this.type = type;
         this.method = method;
@@ -17,6 +18,14 @@ public class Obj implements Location {
     }
     public int getWeight() {
         return weight;
+    }
+    public boolean exposed() { return false; }
+    public int getIndex() { return -5; }
+    public Fraction getFraction() {
+        return fraction;
+    }
+    public SpMethod getMethod() {
+        return method;
     }
     @Override
     public Location combineWith(Location other) {

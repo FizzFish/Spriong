@@ -1,5 +1,8 @@
 package org.lambd.obj;
 
+import org.lambd.SpMethod;
+import org.lambd.transition.FieldTransition;
+import org.lambd.transition.Transition;
 import org.lambd.utils.PrimeGenerator;
 import soot.Local;
 import soot.SootField;
@@ -10,39 +13,33 @@ import java.util.List;
 public class AccessPath implements Location {
     private Obj obj;
     private int weight = 3;
-    private long pushNum = 1;
-    private long popNum = 1;
+    private Fraction fraction = new Fraction(1, 1);
     public AccessPath(Location location, Object field, boolean pushOrPop) {
         long num = PrimeGenerator.v().getPrime(field);
         if (location instanceof Obj obj) {
             this.obj = obj;
             if (pushOrPop)
-                pushNum *= num;
+                fraction.push(num);
             else
-                popNum *= num;
+                fraction.pop(num);
         } else if (location instanceof AccessPath other) {
             this.obj = other.obj;
-            long numerator = other.pushNum;
-            long denominator = other.popNum;
-            if (pushOrPop) {
-                if (denominator % num == 0)
-                    denominator /= num;
-                else
-                    numerator *= num;
-            } else {
-                if (numerator % num == 0)
-                    numerator /= num;
-                else
-                    denominator *= num;
-            }
-            pushNum = numerator;
-            popNum = denominator;
+            Fraction otherFraction = other.fraction;
+            if (pushOrPop)
+                fraction.multiply(otherFraction);
+            else
+                fraction.divide(otherFraction);
         }
     }
     public Obj getObj() {
         return obj;
     }
-
+    public boolean exposed() {
+        return obj.exposed();
+    }
+    public SpMethod getMethod() { return obj.getMethod(); }
+    public int getIndex() { return obj.getIndex(); }
+    public Fraction getFraction() { return fraction; }
     @Override
     public Location combineWith(Location other) {
         if (other.getWeight() >= this.weight)

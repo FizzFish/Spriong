@@ -22,6 +22,16 @@ public class MulObjManager implements ObjManager {
 
 
     @Override
+    public void copy(Local from, Local to) {
+
+    }
+
+    @Override
+    public void copy(Local from, Local to, Relation relation) {
+
+    }
+
+    @Override
     public void show() {
         for (Map.Entry<Local, Set<Location>> entry : objMap.entrySet()) {
             Local key = entry.getKey();
@@ -29,6 +39,7 @@ public class MulObjManager implements ObjManager {
             System.out.printf("%s => %s\n", key, value);
         }
     }
+
     public void addObj(Local value, Location obj) {
         addObj(value, obj, 0);
     }

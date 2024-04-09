@@ -19,6 +19,7 @@ public class SootWorld {
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
     private Map<String, List<BaseTransition>> transferMap = new HashMap<>();
+    private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private SootWorld() {
         List<BaseTransfer> transfers = new TransferConfig("src/main/resources/transfer.yml").parse();
         transfers.forEach(transfer -> {
@@ -96,6 +97,11 @@ public class SootWorld {
                 });
             }
             return;
+        } else if (visited.contains(callee)) {
+            SpMethod method = methodMap.get(callee);
+            method.getTransitions().forEach(transition -> {
+                transition.apply(method, stmt);
+            });
         }
         visitMethod(callee);
     }
@@ -105,6 +111,7 @@ public class SootWorld {
             return;
         visited.add(method);
         SpMethod spMethod = new SpMethod(method);
+        methodMap.put(method, spMethod);
         StmtVisitor visitor = new StmtVisitor(spMethod);
         for (Iterator<Unit> it = method.getActiveBody().getUnits().iterator(); it.hasNext();) {
             Unit unit = it.next();

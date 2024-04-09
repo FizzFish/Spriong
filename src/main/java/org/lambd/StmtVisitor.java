@@ -52,10 +52,10 @@ public class StmtVisitor {
         ObjManager objManager = method.getObjManager();
         if (lhs instanceof Local lvar) {
             if (rhs instanceof Local rvar) {
-                method.copy(rvar, lvar);
+                objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
                 Obj obj = new Obj(newExpr.getType(), method);
-                method.addObj(lvar, obj);
+                objManager.addObj(lvar, obj);
             } else if (rhs instanceof Constant) {
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
@@ -70,7 +70,7 @@ public class StmtVisitor {
             } else if (rhs instanceof UnopExpr) {
             } else if (rhs instanceof InstanceOfExpr) {
             } else if (rhs instanceof CastExpr castExpr) {
-                method.copy((Local) castExpr.getOp(), lvar);
+                objManager.copy((Local) castExpr.getOp(), lvar);
             } else {
                 System.out.println("unsupported assignment rhs: " + stmt);
             }

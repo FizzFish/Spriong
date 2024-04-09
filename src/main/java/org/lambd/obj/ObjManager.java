@@ -6,7 +6,8 @@ import soot.SootMethod;
 import soot.Value;
 
 public interface ObjManager {
-    void copy(Local from, Local to, int update);
+    void copy(Local from, Local to);
+    void copy(Local from, Local to, Relation relation);
     void addObj(Local value, Location obj);
     void show();
     // x = y.f

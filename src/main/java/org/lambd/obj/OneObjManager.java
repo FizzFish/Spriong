@@ -19,21 +19,23 @@ public class OneObjManager implements ObjManager {
     }
 
     @Override
-    public void copy(Local from, Local to, int update) {
+    public void copy(Local from, Local to, Relation relation) {
         if (objMap.containsKey(from)) {
             Location obj = objMap.get(from);
-            addObj(to, objMap.get(from), update);
+            addObj(to, obj, relation);
         }
     }
-
+    public void copy(Local from, Local to) {
+        copy(from, to, Relation.Identity);
+    }
     @Override
     public void addObj(Local value, Location obj) {
-        addObj(value, obj, 0);
+        addObj(value, obj, Relation.Identity);
     }
-    public void addObj(Local value, Location obj, int update) {
+    public void addObj(Local value, Location obj, Relation relation) {
         if (objMap.containsKey(value)) {
             Location oldOne = objMap.get(value);
-            if (update == 1)
+            if (relation.isUpdate())
                 oldOne.deepCopy(obj);
             else {
                 Location newOne = oldOne.combineWith(obj);
@@ -55,6 +57,8 @@ public class OneObjManager implements ObjManager {
     public void loadField(Local to, Local base, SootField field) {
         // x = y.f
         Location obj = objMap.get(base);
+        if (obj == null)
+            return;
         AccessPath accessPath = new AccessPath(obj, field, false);
         addObj(to, accessPath);
     }
@@ -66,6 +70,8 @@ public class OneObjManager implements ObjManager {
     public void storeField(Local base, SootField field, Local from) {
         // x.f = y
         Location obj = objMap.get(from);
+        if (obj == null)
+            return;
         AccessPath accessPath = new AccessPath(obj, field, true);
         addObj(base, accessPath);
     }
@@ -76,12 +82,16 @@ public class OneObjManager implements ObjManager {
     public void loadArray(Local to, Local base) {
         // x = y[i]
         Location obj = objMap.get(base);
+        if (obj == null)
+            return;
         AccessPath accessPath = new AccessPath(obj, "array", false);
         addObj(to, accessPath);
     }
     public void storeArray(Local base, Local from) {
         // x[i] = y
         Location obj = objMap.get(from);
+        if (obj == null)
+            return;
         AccessPath accessPath = new AccessPath(obj, "array", true);
         addObj(base, accessPath);
     }

@@ -1,6 +1,7 @@
 package org.lambd;
 
 import org.lambd.obj.*;
+import org.lambd.transition.Transition;
 import soot.*;
 import soot.jimple.*;
 
@@ -14,6 +15,7 @@ public class SpMethod {
     private final List<Local> paramters;
     private final Local thisVar;
     private ObjManager objManager;
+    private List<Transition> transitions = new ArrayList<>();
     public SpMethod(SootMethod sootMethod) {
         List<Local> paramters1;
         this.paramTypes = sootMethod.getParameterTypes();
@@ -65,14 +67,20 @@ public class SpMethod {
         }
         return null;
     }
-    public void accept(Stmt stmt, int from, int to, int update) {
+    public void addTransition(Transition transition) {
+        transitions.add(transition);
+    }
+    public List<Transition> getTransitions() {
+        return transitions;
+    }
+    public void accept(Stmt stmt, int from, int to, Relation relation) {
         Value fromVal = getParameter(stmt, from);
         Value toVal = getParameter(stmt, to);
         if (fromVal instanceof Local local) {
-            copy(local, (Local) toVal, update);
-        } else if (fromVal instanceof Constant constant) {
-            ConstantObj constantObj = new ConstantObj(toVal.getType(), this, constant);
-            objManager.addObj((Local) toVal, constantObj);
+            objManager.copy(local, (Local) toVal, relation);
+//        } else if (fromVal instanceof Constant constant) {
+//            ConstantObj constantObj = new ConstantObj(toVal.getType(), this, constant);
+//            objManager.addObj((Local) toVal, constantObj);
         }
     }
 
@@ -82,17 +90,8 @@ public class SpMethod {
     public String getName() {
         return name;
     }
-    public void addObj(Local local, Obj obj) {
-        objManager.addObj(local, obj);
-    }
-    public void copy(Local from, Local to) {
-        // field ?
-        copy(from, to, 0);
-    }
-    public void copy(Local from, Local to, int update) {
-        // field ?
-        // deep or shallow ?
-        objManager.copy(from, to, update);
+    public String toString() {
+        return name;
     }
 
 }

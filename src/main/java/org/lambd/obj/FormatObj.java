@@ -16,10 +16,11 @@ public class FormatObj extends Obj {
     public int getIndex() {
         return index;
     }
-    public void deepCopy(Location other) {
-        if (other instanceof FormatObj formatObj)
-            update = formatObj.getIndex();
-    }
+    public boolean exposed() { return true; }
+//    public void deepCopy(Location other) {
+//        if (other instanceof FormatObj formatObj)
+//            update = formatObj.getIndex();
+//    }
     public String toString() {
         return String.format("FormatObj:%s@%s", type, method.getName());
     }
