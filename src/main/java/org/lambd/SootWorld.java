@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lambd.obj.Obj;
 import org.lambd.transition.BaseTransfer;
+import org.lambd.transition.BaseTransition;
 import org.lambd.transition.TransferConfig;
 import soot.*;
 import soot.jimple.*;
@@ -17,9 +18,12 @@ public class SootWorld {
     private static final Logger logger = LogManager.getLogger(SootWorld.class);
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
-    private List<BaseTransfer> baseTransfers;
+    private Map<String, List<BaseTransition>> transferMap = new HashMap<>();
     private SootWorld() {
-        baseTransfers = new TransferConfig("src/main/resources/transfer.yml").parse();
+        List<BaseTransfer> transfers = new TransferConfig("src/main/resources/transfer.yml").parse();
+        transfers.forEach(transfer -> {
+            transferMap.put(transfer.method, transfer.transitions);
+        });
     }
     public static SootWorld v() {
         if (world == null) {
@@ -83,19 +87,21 @@ public class SootWorld {
     }
     List<SootMethod> visited = new ArrayList<>();
 
-    /**
-     * [soot.jimple.internal.JAssignStmt
-     * soot.jimple.internal.JReturnVoidStmt
-     * soot.jimple.internal.JInvokeStmt
-     * soot.jimple.internal.JIfStmt
-     * soot.jimple.internal.JGotoStmt
-     * soot.jimple.internal.JThrowStmt
-     * soot.jimple.internal.JReturnStmt
-     * soot.jimple.internal.JIdentityStmt]
-     * @param method
-     */
+    public void visitMethodCheck(SootMethod callee, SpMethod caller, Stmt stmt) {
+        if (!callee.getDeclaringClass().isApplicationClass()) {
+            String signature = callee.getSignature();
+            if (transferMap.containsKey(signature)) {
+                transferMap.get(signature).forEach(transition -> {
+                    transition.apply(caller, stmt);
+                });
+            }
+            return;
+        }
+        visitMethod(callee);
+    }
     public void visitMethod(SootMethod method) {
-        if (visited.contains(method) || !method.getDeclaringClass().isApplicationClass())
+
+        if (visited.contains(method))
             return;
         visited.add(method);
         SpMethod spMethod = new SpMethod(method);
@@ -104,12 +110,5 @@ public class SootWorld {
             Unit unit = it.next();
             visitor.visit((Stmt) unit);
         }
-        Map<Value, Set<Obj>> pts = spMethod.getPts();
-//        System.out.println(pts);
-//        for (Map.Entry<Value, Set<Obj>> entry : pts.entrySet()) {
-//            Value key = entry.getKey();
-//            Set<Obj> value = entry.getValue();
-//            System.out.printf("%s => %s\n", key, value);
-//        }
     }
 }

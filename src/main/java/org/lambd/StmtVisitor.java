@@ -40,10 +40,11 @@ public class StmtVisitor {
     public void visit(AssignStmt stmt) {
         Value lhs = stmt.getLeftOp();
         Value rhs = stmt.getRightOp();
-        if (rhs instanceof InvokeExpr) {
+        if (rhs instanceof InvokeExpr invoke) {
             SootMethod callee = getCallee(stmt);
+            invoke.getArgs();
             if (callee !=null) {
-                SootWorld.v().visitMethod(callee);
+                SootWorld.v().visitMethodCheck(callee, method, stmt);
             }
             return;
         }
@@ -93,7 +94,7 @@ public class StmtVisitor {
     public void visit(InvokeStmt stmt) {
         SootMethod callee = getCallee(stmt);
         if (callee !=null) {
-            SootWorld.v().visitMethod(callee);
+            SootWorld.v().visitMethodCheck(callee, method, stmt);
         }
     }
     public void visit(ReturnStmt stmt) {

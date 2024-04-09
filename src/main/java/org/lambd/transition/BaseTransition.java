@@ -1,10 +1,13 @@
 package org.lambd.transition;
 
 import org.lambd.SpMethod;
-import soot.SootField;
 import soot.jimple.Stmt;
 
-public record FieldTransition(int from, int to, SootField field, boolean direction, int kind) implements Transition {
+public record BaseTransition(int from, int to, int kind) implements Transition {
+    public String toString() {
+        return "(" + from + ", " + to + ", " + kind +")";
+    }
+
     @Override
     public void apply(SpMethod method, Stmt stmt) {
         method.accept(stmt, from, to, kind);

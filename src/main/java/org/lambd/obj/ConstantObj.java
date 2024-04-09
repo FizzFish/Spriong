@@ -9,6 +9,7 @@ public class ConstantObj extends Obj {
     {
         super(type, method);
         this.constant = constant;
+        this.weight = 0;
     }
     public String toString() {
         return String.format("ConstantObj%s@%s", type, method.getName());

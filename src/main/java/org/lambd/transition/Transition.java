@@ -1,9 +1,8 @@
 package org.lambd.transition;
 
-import soot.SootField;
+import org.lambd.SpMethod;
+import soot.jimple.Stmt;
 
-public record Transition(int from, int to) {
-    public String toString() {
-        return "(" + from + ", " + to + ")";
-    }
+public interface Transition {
+    void apply(SpMethod method, Stmt stmt);
 }

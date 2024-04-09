@@ -1,9 +1,9 @@
 package org.lambd;
 
-import org.lambd.obj.FormatObj;
-import org.lambd.obj.Obj;
-import org.lambd.transition.Transition;
+import org.lambd.obj.*;
+import org.lambd.transition.BaseTransition;
 import soot.*;
+import soot.jimple.*;
 
 import java.util.*;
 
@@ -14,72 +14,86 @@ public class SpMethod {
     public final String name;
     private final List<Local> paramters;
     private final Local thisVar;
-    private Map<Value, Set<Obj>> objMap = new HashMap<>();
-    private List<Transition> transitions = new ArrayList<>();
+    private ObjManager objManager;
     public SpMethod(SootMethod sootMethod) {
+        List<Local> paramters1;
         this.paramTypes = sootMethod.getParameterTypes();
         this.clazz = sootMethod.getDeclaringClass();
         this.returnType = sootMethod.getReturnType();
         this.name = sootMethod.getName();
-        this.paramters = sootMethod.getActiveBody().getParameterLocals();
+        objManager = new OneObjManager(this);
+        try {
+            paramters1 = sootMethod.getActiveBody().getParameterLocals();
+        } catch (Exception e) {
+            paramters1 = new ArrayList<>();
+        }
 
+        this.paramters = paramters1;
         for (int i = 0; i < paramTypes.size(); i++) {
-            addObj(paramters.get(i), new FormatObj(paramTypes.get(i), this, i));
+            objManager.addObj(paramters.get(i), new FormatObj(paramTypes.get(i), this, i));
         }
         if (!sootMethod.isStatic()) {
             this.thisVar = sootMethod.getActiveBody().getThisLocal();
-            addObj(thisVar, new FormatObj(clazz.getType(), this, -1));
+            objManager.addObj(thisVar, new FormatObj(clazz.getType(), this, -1));
         } else {
             this.thisVar = null;
         }
     }
-    public void addObj(Value value, Obj obj)
-    {
-        if (objMap.containsKey(value))
-        {
-            objMap.get(value).add(obj);
+    private Value getParameter(AssignStmt stmt, int i) {
+        if (i == -2)
+            return stmt.getLeftOp();
+        Value rhs = stmt.getRightOp();
+        if (rhs instanceof InvokeExpr invoke) {
+            if (i == -1 && invoke instanceof InstanceInvokeExpr instanceInvoke) {
+                return instanceInvoke.getBase();
+            }
+            return invoke.getArg(i);
         }
-        else
-        {
-            Set set = new HashSet<>();
-            set.add(obj);
-            objMap.put(value, set);
+        return null;
+    }
+    private Value getParameter(InvokeStmt stmt, int i) {
+        InvokeExpr invokeExpr = stmt.getInvokeExpr();
+        if (i == -1 && invokeExpr instanceof InstanceInvokeExpr instanceInvoke) {
+            return instanceInvoke.getBase();
+        }
+        return invokeExpr.getArg(i);
+    }
+    private Value getParameter(Stmt stmt, int i) {
+        if (stmt instanceof AssignStmt assignStmt) {
+            return getParameter(assignStmt, i);
+        } else if (stmt instanceof InvokeStmt invokeStmt) {
+            return getParameter(invokeStmt, i);
+        }
+        return null;
+    }
+    public void accept(Stmt stmt, int from, int to, int update) {
+        Value fromVal = getParameter(stmt, from);
+        Value toVal = getParameter(stmt, to);
+        if (fromVal instanceof Local local) {
+            copy(local, (Local) toVal, update);
+        } else if (fromVal instanceof Constant constant) {
+            ConstantObj constantObj = new ConstantObj(toVal.getType(), this, constant);
+            objManager.addObj((Local) toVal, constantObj);
         }
     }
-    public void addObjSet(Value value, Set<Obj> objSet)
-    {
-        if (objMap.containsKey(value))
-        {
-            objMap.get(value).addAll(objSet);
-        }
-        else
-        {
-            objMap.put(value, Set.copyOf(objSet));
-        }
-    }
-    public void addTransition(Transition transition)
-    {
-        transitions.add(transition);
-    }
-    public List<Transition> getTransitions()
-    {
-        return transitions;
-    }
-    public Map<Value, Set<Obj>> getPts() {
-        return objMap;
+
+    public ObjManager getObjManager() {
+        return objManager;
     }
     public String getName() {
         return name;
     }
+    public void addObj(Local local, Obj obj) {
+        objManager.addObj(local, obj);
+    }
     public void copy(Local from, Local to) {
         // field ?
+        copy(from, to, 0);
+    }
+    public void copy(Local from, Local to, int update) {
+        // field ?
         // deep or shallow ?
-        if (objMap.containsKey(from)) {
-            Set<Obj> objs = objMap.get(from);
-            objs.forEach(obj -> {
-                addObj(to, obj);
-            });
-        }
+        objManager.copy(from, to, update);
     }
     public void loadField(Local to, Local base, SootField field) {
         // x = y.f
