@@ -2,8 +2,9 @@ package org.lambd;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.lambd.transition.SinkTransition;
 import org.lambd.transition.TaintConfig;
-import org.lambd.transition.BaseTransition;
+import org.lambd.transition.Transition;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -16,17 +17,27 @@ public class SootWorld {
     private static final Logger logger = LogManager.getLogger(SootWorld.class);
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
-    private Map<String, List<BaseTransition>> transferMap = new HashMap<>();
-    private Map<String, Integer> sinkIndex = new HashMap<>();
+    private Map<String, List<Transition>> methodRefMap = new HashMap<>();
+    private Map<SootMethod, List<Transition>> calleeMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private SootWorld() {
-        new TaintConfig("src/main/resources/transfer.yml").parse(transferMap, sinkIndex);
+        new TaintConfig("src/main/resources/transfer.yml").parse(methodRefMap);
     }
     public static SootWorld v() {
         if (world == null) {
             world = new SootWorld();
         }
         return world;
+    }
+    public void addTransition(SootMethod method, Transition transition) {
+        if (calleeMap.containsKey(method)) {
+            List<Transition> transitions = calleeMap.get(method);
+            transitions.add(transition);
+        } else {
+            List<Transition> transitions = new ArrayList<>();
+            transitions.add(transition);
+            calleeMap.put(method, transitions);
+        }
     }
     public SootMethod getEntryMethod() {
         return entryMethod;
@@ -57,8 +68,8 @@ public class SootWorld {
         this.entryMethod = entryMethod;
         Scene.v().setEntryPoints(entryPoints);
 
-        Options.v().set_no_bodies_for_excluded(true);
-        Options.v().set_allow_phantom_refs(true);
+        Options.v().setPhaseOption("cg.cha", "on");
+        Options.v().setPhaseOption("cg", "all-reachable:true");
         Options.v().setPhaseOption("jb", "use-original-names:true");
         Options.v().setPhaseOption("jb.ls", "enabled:false");
         Options.v().set_prepend_classpath(false);
@@ -83,27 +94,35 @@ public class SootWorld {
         }
     }
     List<SootMethod> visited = new ArrayList<>();
-
-    public void visitMethodCheck(SootMethod callee, SpMethod caller, Stmt stmt) {
-        if (!callee.getDeclaringClass().isApplicationClass()) {
-            String signature = callee.getSignature();
-            if (transferMap.containsKey(signature)) {
-                transferMap.get(signature).forEach(transition -> {
-                    transition.apply(caller, stmt);
-                });
-            }
-            return;
-        } else if (visited.contains(callee)) {
-            SpMethod method = methodMap.get(callee);
-            method.getTransitions().forEach(transition -> {
-                transition.apply(method, stmt);
-            });
-        }
-        visitMethod(callee);
+    public List<SootMethod> getVisited() {
+        return visited;
     }
-    public void visitMethod(SootMethod method) {
 
-        if (visited.contains(method))
+    public boolean quickMethodRef(String signature, SpMethod caller, Stmt stmt) {
+        // 1. transition or sink not enter
+        if (methodRefMap.containsKey(signature)) {
+            methodRefMap.get(signature).forEach(transition -> {
+                transition.apply(caller, stmt);
+            });
+            return true;
+        }
+        return false;
+    }
+    public boolean quickCallee(SootMethod callee, SpMethod caller, Stmt stmt) {
+        // 1. transition or sink not enter
+        if (calleeMap.containsKey(callee)) {
+//            calleeMap.get(callee).forEach(transition -> {
+//                transition.apply(caller, stmt);
+//            });
+            for (Transition transition : calleeMap.get(callee))
+                transition.apply(caller, stmt);
+            return true;
+        }
+        return false;
+    }
+
+    public void visitMethod(SootMethod method) {
+        if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
             return;
         visited.add(method);
         SpMethod spMethod = new SpMethod(method);
@@ -113,5 +132,10 @@ public class SootWorld {
             Unit unit = it.next();
             visitor.visit((Stmt) unit);
         }
+    }
+    public SpMethod getMethod(SootMethod method) {
+        if (methodMap.containsKey(method))
+            return methodMap.get(method);
+        return new SpMethod(method);
     }
 }

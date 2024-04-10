@@ -12,6 +12,6 @@ public class ConstantObj extends Obj {
         this.weight = 0;
     }
     public String toString() {
-        return String.format("ConstantObj%s@%s", type, method.getName());
+        return String.format("ConstantObj: %s@%s", type, method.getName());
     }
 }

@@ -104,4 +104,9 @@ public class MulObjManager implements ObjManager {
     public void invoke(Local to, Local base, SootMethod method) {
 
     }
+
+    @Override
+    public Location getObj(Local value) {
+        return null;
+    }
 }

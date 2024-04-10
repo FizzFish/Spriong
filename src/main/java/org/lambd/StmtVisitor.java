@@ -1,17 +1,21 @@
 package org.lambd;
 
 import org.lambd.obj.ConstantObj;
-import org.lambd.obj.FormatObj;
 import org.lambd.obj.Obj;
 import org.lambd.obj.ObjManager;
 import soot.*;
 import soot.jimple.*;
+import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 public class StmtVisitor {
-    private SpMethod method;
+    private SpMethod methodContext;
     public StmtVisitor(SpMethod method) {
-        this.method = method;
+        this.methodContext = method;
     }
     public void visit(Stmt stmt) {
         if (stmt instanceof IdentityStmt) {
@@ -38,23 +42,36 @@ public class StmtVisitor {
         } else if (val instanceof ThisRef thisRef) {
         }
     }
+    private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
+        String signature = invoke.getMethodRef().getSignature();
+        SootWorld world = SootWorld.v();
+        if (!world.quickMethodRef(signature, methodContext, stmt)) {
+            Set<SootMethod> callees = getCallee(stmt, invoke);
+            for (SootMethod callee : callees) {
+                if (world.getVisited().contains(callee))
+                    continue;
+                if (!world.quickCallee(callee, methodContext, stmt)) {
+                    SootWorld.v().visitMethod(callee);
+                    world.quickCallee(callee, methodContext, stmt);
+                }
+            }
+            // check methodRef again
+            world.quickMethodRef(signature, methodContext, stmt);
+        }
+    }
     public void visit(AssignStmt stmt) {
         Value lhs = stmt.getLeftOp();
         Value rhs = stmt.getRightOp();
         if (rhs instanceof InvokeExpr invoke) {
-            SootMethod callee = getCallee(stmt);
-            invoke.getArgs();
-            if (callee !=null) {
-                SootWorld.v().visitMethodCheck(callee, method, stmt);
-            }
+            handleInvoke(stmt, invoke);
             return;
         }
-        ObjManager objManager = method.getObjManager();
+        ObjManager objManager = methodContext.getObjManager();
         if (lhs instanceof Local lvar) {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-                Obj obj = new Obj(newExpr.getType(), method);
+                Obj obj = new Obj(newExpr.getType(), methodContext);
                 objManager.addObj(lvar, obj);
             } else if (rhs instanceof Constant) {
             } else if (rhs instanceof FieldRef fieldRef) {
@@ -70,7 +87,9 @@ public class StmtVisitor {
             } else if (rhs instanceof UnopExpr) {
             } else if (rhs instanceof InstanceOfExpr) {
             } else if (rhs instanceof CastExpr castExpr) {
-                objManager.copy((Local) castExpr.getOp(), lvar);
+                Value op = castExpr.getOp();
+                if (op instanceof Local local)
+                    objManager.copy(local, lvar);
             } else {
                 System.out.println("unsupported assignment rhs: " + stmt);
             }
@@ -92,17 +111,29 @@ public class StmtVisitor {
             System.out.println("unsupported assignment lhs: " + stmt);
         }
     }
-    private SootMethod getCallee(Unit unit) {
-        Edge edge = Scene.v().getCallGraph().edgesOutOf(unit).next();
-        if (edge.getTgt() != null)
-            return edge.getTgt().method();
-        return null;
+    private Set<SootMethod> getCallee(Unit unit, InvokeExpr invoke) {
+        Hierarchy hierarchy = Scene.v().getActiveHierarchy();
+        CallGraph cg = Scene.v().getCallGraph();
+        Set<SootMethod> methods = new HashSet();
+        for (Iterator<Edge> it = cg.edgesOutOf(unit); it.hasNext();) {
+            Edge edge = it.next();
+            SootMethod sootMethod = edge.getTgt().method();
+//            if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
+//                RefType baseType = (RefType) instanceInvokeExpr.getBase().getType();
+//
+//                SootClass declaringClass = sootMethod.getDeclaringClass();
+//                SootClass baseClass = baseType.getSootClass();
+//                if (!hierarchy.isClassSubclassOfIncluding(declaringClass, baseClass))
+//                    continue;
+//            }
+            methods.add(sootMethod);
+        }
+
+        return methods;
     }
     public void visit(InvokeStmt stmt) {
-        SootMethod callee = getCallee(stmt);
-        if (callee !=null) {
-            SootWorld.v().visitMethodCheck(callee, method, stmt);
-        }
+        InvokeExpr invoke = stmt.getInvokeExpr();
+        handleInvoke(stmt, invoke);
     }
     public void visit(ReturnStmt stmt) {
         Value retVal = stmt.getOp();
@@ -111,7 +142,7 @@ public class StmtVisitor {
 //            method.addTransition(transition);
         } else if (retVal instanceof Constant constant){
             // Todo
-            ConstantObj constantObj = new ConstantObj(retVal.getType(), method, constant);
+            ConstantObj constantObj = new ConstantObj(retVal.getType(), methodContext, constant);
 
         } else {
             System.out.println("unsupported return type: " + retVal.getClass().getName());

@@ -98,4 +98,9 @@ public class OneObjManager implements ObjManager {
     public void invoke(Local to, Local base, SootMethod method) {
 
     }
+
+    @Override
+    public Location getObj(Local value) {
+        return objMap.get(value);
+    }
 }

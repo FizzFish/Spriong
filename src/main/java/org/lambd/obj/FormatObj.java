@@ -22,6 +22,6 @@ public class FormatObj extends Obj {
 //            update = formatObj.getIndex();
 //    }
     public String toString() {
-        return String.format("FormatObj:%s@%s", type, method.getName());
+        return String.format("FormatObj: %s@%s", type, method.getName());
     }
 }

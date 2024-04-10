@@ -2,10 +2,13 @@ package org.lambd.transition;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.lambd.obj.Fraction;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class TaintConfig {
     private String configFile;
@@ -13,16 +16,20 @@ public class TaintConfig {
     public TaintConfig(String configFile) {
         this.configFile = configFile;
     }
-    public void parse(Map<String, List<BaseTransition>> transferMap, Map<String, Integer> sinkIndex) {
+    public void parse(Map<String, List<Transition>> methodRefMap) {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
             Knowledge knowledge = mapper.readValue(new File(configFile), Knowledge.class);
             System.out.println(knowledge);
             knowledge.transfers().forEach(transfer -> {
-                transferMap.put(transfer.method(), transfer.transitions());
+                methodRefMap.put(transfer.method(),
+                        transfer.transitions().stream().
+                                map(t -> (Transition) t).collect(Collectors.toList()));
             });
             knowledge.sinks().forEach(sink -> {
-                sinkIndex.put(sink.method(), sink.index());
+                List<Transition> sinkList = new ArrayList<>();
+                sinkList.add(new SinkTransition(sink.index(), Fraction.one(), sink.method()));
+                methodRefMap.put(sink.method(), sinkList);
             });
             // 输出结果，验证是否正确解析
         } catch (Exception e) {

@@ -14,7 +14,7 @@ public class Obj implements Location {
         this.weight = 1;
     }
     public String toString() {
-        return String.format("Obj%s@%s", type, method.getName());
+        return String.format("Obj: %s@%s", type, method.getName());
     }
     public int getWeight() {
         return weight;

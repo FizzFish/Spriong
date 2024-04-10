@@ -25,7 +25,8 @@ public class Main {
 //        sootWorld.showCallee(sootWorld.entryMethod);
         SootMethod entryMethod = SootWorld.v().getEntryMethod();
         SootWorld.v().visitMethod(entryMethod);
-
+        List<SootMethod> visited = SootWorld.v().getVisited();
+        System.out.println(visited.size());
     }
 }
 

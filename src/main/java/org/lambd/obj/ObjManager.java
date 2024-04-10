@@ -23,4 +23,5 @@ public interface ObjManager {
     // x[i] = y
     void storeArray(Local base, Local from);
     void invoke(Local to, Local base, SootMethod method);
+    Location getObj(Local value);
 }

@@ -14,7 +14,7 @@ public record BaseTransition(int from, int to, int kind) implements Transition {
     public void apply(SpMethod method, Stmt stmt) {
         boolean update = kind == 1;
         Relation relation = new Relation(Fraction.one(), update);
-        method.accept(stmt, from, to, relation);
+        method.handleTransition(stmt, from, to, relation);
     }
 
 }
