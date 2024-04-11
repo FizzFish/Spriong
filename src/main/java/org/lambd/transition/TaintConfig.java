@@ -47,7 +47,7 @@ record Sink(String method, int index) {
     }
 }
 
-record Transfer(String method, List<BaseTransition> transitions) {
+record Transfer(String method, List<BaseTrans> transitions) {
     public String toString() {
         return method + ": " + transitions;
     }

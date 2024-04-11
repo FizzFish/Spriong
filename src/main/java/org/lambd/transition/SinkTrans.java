@@ -35,7 +35,7 @@ public class SinkTrans implements Transition {
         String s1 = numerator == 1? "" : PrimeGenerator.v().express(numerator);
         String s2 = denominator == 1? "" : PrimeGenerator.v().express(denominator);
 //        return String.format("Sink@%d: %s/%s, %s", argIndex, s1, s2, realSink);
-        return String.format("%s%s sink to %s", Utils.argString(argIndex), s2, realSink);
+        return String.format("<sink>: %s%s flow to %s", Utils.argString(argIndex), s2, realSink);
     }
     @Override
     public void apply(SpMethod method, Stmt stmt) {

@@ -96,7 +96,7 @@ public class SpMethod {
     public void handleTransition(Stmt stmt, int from, int to, Weight w) {
         SpVar fromVar = getParamVar(stmt, from);
         SpVar toVar = getParamVar(stmt, to);
-        if (fromVar == null || toVar == null)
+        if (fromVar == null || toVar == null || fromVar == toVar)
             return;
         toVar.update(fromVar, w);
 

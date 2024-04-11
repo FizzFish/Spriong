@@ -10,6 +10,12 @@ public record ArgTrans(int from, int to, Weight w) implements Transition {
     public void apply(SpMethod method, Stmt stmt) {
         method.handleTransition(stmt, from, to, w);
     }
+
+    @Override
+    public boolean isReturnTrans() {
+        return to == -2;
+    }
+
     public String toString() {
         int numerator = w.getFraction().getNumerator();
         int denominator = w.getFraction().getDenominator();

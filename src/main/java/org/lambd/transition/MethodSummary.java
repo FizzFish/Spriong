@@ -37,10 +37,15 @@ public class MethodSummary {
     public void apply(SpMethod method, Stmt stmt) {
         transitions.forEach(t -> t.apply(method, stmt));
     }
-    public void print() {
-        System.out.println(method + ": ");
-        for (Transition t : transitions)
-            System.out.println("\t" + t);
+    public void print(boolean simple) {
+        if (simple && transitions.stream().anyMatch(t -> !t.isReturnTrans())) {
+            System.out.println(method + ": ");
+            transitions.stream().filter(t -> !t.isReturnTrans()).forEach(t -> System.out.println("\t" + t));
+        } else if (!simple && !transitions.isEmpty()) {
+            System.out.println(method + ": ");
+            for (Transition t : transitions)
+                System.out.println("\t" + t);
+        }
     }
 }
 
