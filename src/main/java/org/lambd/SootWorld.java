@@ -18,10 +18,11 @@ public class SootWorld {
     private static final Logger logger = LogManager.getLogger(SootWorld.class);
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
+    private String entryMethodName;
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private SootWorld() {
-        new TaintConfig("src/main/resources/transfer.yml").parse(methodRefMap);
+        entryMethodName = new TaintConfig("src/main/resources/transfer.yml").parse(methodRefMap);
     }
     public static SootWorld v() {
         if (world == null) {

@@ -16,10 +16,12 @@ public class TaintConfig {
     public TaintConfig(String configFile) {
         this.configFile = configFile;
     }
-    public void parse(Map<String, List<Transition>> methodRefMap) {
+    public String parse(Map<String, List<Transition>> methodRefMap) {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        String source = null;
         try {
             Knowledge knowledge = mapper.readValue(new File(configFile), Knowledge.class);
+            source = knowledge.source();
             knowledge.transfers().forEach(transfer -> {
                 methodRefMap.put(transfer.method(),
                         transfer.transitions().stream().
@@ -34,9 +36,10 @@ public class TaintConfig {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return source;
     }
 }
-record Knowledge(List<Sink> sinks, List<Transfer> transfers) {
+record Knowledge(String source, List<Sink> sinks, List<Transfer> transfers) {
 }
 record Sink(String method, int index) {
     public String toString() {
