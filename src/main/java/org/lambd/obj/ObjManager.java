@@ -1,15 +1,12 @@
 package org.lambd.obj;
 
+import org.lambd.transition.Weight;
 import soot.Local;
 import soot.SootField;
 import soot.SootMethod;
-import soot.Value;
 
 public interface ObjManager {
     void copy(Local from, Local to);
-    void copy(Local from, Local to, Relation relation);
-    void addObj(Local value, Location obj);
-    void show();
     // x = y.f
     void loadField(Local to, Local base, SootField field);
     // x = C.f
@@ -22,6 +19,4 @@ public interface ObjManager {
     void loadArray(Local to, Local base);
     // x[i] = y
     void storeArray(Local base, Local from);
-    void invoke(Local to, Local base, SootMethod method);
-    Location getObj(Local value);
 }

@@ -1,7 +1,6 @@
 package org.lambd;
 
-import org.lambd.obj.ConstantObj;
-import org.lambd.obj.Obj;
+import org.lambd.obj.NewObj;
 import org.lambd.obj.ObjManager;
 import soot.*;
 import soot.jimple.*;
@@ -66,13 +65,14 @@ public class StmtVisitor {
             handleInvoke(stmt, invoke);
             return;
         }
-        ObjManager objManager = methodContext.getObjManager();
+        ObjManager objManager = methodContext.getManager();
         if (lhs instanceof Local lvar) {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-                Obj obj = new Obj(newExpr.getType(), methodContext);
-                objManager.addObj(lvar, obj);
+                SpVar var = methodContext.getVar(lhs);
+                if (var != null)
+                    var.assignObj(newExpr.getType());
             } else if (rhs instanceof Constant) {
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
@@ -142,7 +142,7 @@ public class StmtVisitor {
 //            method.addTransition(transition);
         } else if (retVal instanceof Constant constant){
             // Todo
-            ConstantObj constantObj = new ConstantObj(retVal.getType(), methodContext, constant);
+//            ConstantObj constantObj = new ConstantObj(retVal.getType(), methodContext, constant);
 
         } else {
             System.out.println("unsupported return type: " + retVal.getClass().getName());

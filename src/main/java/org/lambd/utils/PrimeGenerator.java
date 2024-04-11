@@ -1,8 +1,5 @@
 package org.lambd.utils;
 
-import org.lambd.SootWorld;
-import org.lambd.obj.Fraction;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;

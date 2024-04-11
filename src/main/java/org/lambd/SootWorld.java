@@ -2,6 +2,7 @@ package org.lambd;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.lambd.transition.MethodSummary;
 import org.lambd.transition.SinkTransition;
 import org.lambd.transition.TaintConfig;
 import org.lambd.transition.Transition;
@@ -18,7 +19,6 @@ public class SootWorld {
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
-    private Map<SootMethod, List<Transition>> calleeMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private SootWorld() {
         new TaintConfig("src/main/resources/transfer.yml").parse(methodRefMap);
@@ -28,16 +28,6 @@ public class SootWorld {
             world = new SootWorld();
         }
         return world;
-    }
-    public void addTransition(SootMethod method, Transition transition) {
-        if (calleeMap.containsKey(method)) {
-            List<Transition> transitions = calleeMap.get(method);
-            transitions.add(transition);
-        } else {
-            List<Transition> transitions = new ArrayList<>();
-            transitions.add(transition);
-            calleeMap.put(method, transitions);
-        }
     }
     public SootMethod getEntryMethod() {
         return entryMethod;
@@ -110,12 +100,9 @@ public class SootWorld {
     }
     public boolean quickCallee(SootMethod callee, SpMethod caller, Stmt stmt) {
         // 1. transition or sink not enter
-        if (calleeMap.containsKey(callee)) {
-//            calleeMap.get(callee).forEach(transition -> {
-//                transition.apply(caller, stmt);
-//            });
-            for (Transition transition : calleeMap.get(callee))
-                transition.apply(caller, stmt);
+        MethodSummary summary = getMethod(callee).getSummary();
+        if (!summary.isEmpty()) {
+            summary.apply(caller, stmt);
             return true;
         }
         return false;
@@ -132,6 +119,8 @@ public class SootWorld {
             Unit unit = it.next();
             visitor.visit((Stmt) unit);
         }
+        if (!spMethod.getSummary().isEmpty())
+            spMethod.getSummary().print();
     }
     public SpMethod getMethod(SootMethod method) {
         if (methodMap.containsKey(method))

@@ -2,7 +2,7 @@ package org.lambd.transition;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.lambd.obj.Fraction;
+import org.apache.commons.math3.fraction.Fraction;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class TaintConfig {
             });
             knowledge.sinks().forEach(sink -> {
                 List<Transition> sinkList = new ArrayList<>();
-                sinkList.add(new SinkTransition(sink.index(), Fraction.one(), sink.method()));
+                sinkList.add(new SinkTransition(sink.index(), Fraction.ONE, sink.method()));
                 methodRefMap.put(sink.method(), sinkList);
             });
             // 输出结果，验证是否正确解析
