@@ -6,12 +6,12 @@ import org.lambd.utils.PrimeGenerator;
 import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
 
-public class SinkTransition implements Transition {
+public class SinkTrans implements Transition {
     private String realSink;
     private int argIndex;
     private Fraction fraction;
     // method.param(index) -(fraction)-> sink
-    public SinkTransition(int index, Fraction fraction, String sink)
+    public SinkTrans(int index, Fraction fraction, String sink)
     {
         this.argIndex = index;
         this.fraction = fraction;

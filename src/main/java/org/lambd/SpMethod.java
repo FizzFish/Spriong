@@ -1,10 +1,7 @@
 package org.lambd;
 
 import org.lambd.obj.*;
-import org.lambd.transition.MethodSummary;
-import org.lambd.transition.SinkTransition;
-import org.lambd.transition.Transition;
-import org.lambd.transition.Weight;
+import org.lambd.transition.*;
 import soot.*;
 import soot.jimple.*;
 
@@ -111,15 +108,12 @@ public class SpMethod {
             return;
         toVar.copy(fromVar, w);
     }
-    public void handleSink(Stmt stmt, SinkTransition sink) {
+    public void handleSink(Stmt stmt, SinkTrans sink) {
         int index = sink.getIndex();
         SpVar var = getParamVar(stmt, index);
         if (var == null)
             return;
         var.genSink(sink);
-    }
-    public void addTransition(Transition transition) {
-        summary.addTransition(transition);
     }
 
     public String getName() {

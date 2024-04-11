@@ -1,8 +1,7 @@
 package org.lambd;
 
 import org.apache.commons.math3.fraction.Fraction;
-import org.lambd.transition.SinkTransition;
-import org.lambd.transition.WTransition;
+import org.lambd.transition.SinkTrans;
 import org.lambd.transition.Weight;
 import soot.Local;
 import soot.Type;
@@ -68,7 +67,7 @@ public class SpVar {
                     Weight oj = other.paramWeight.get(j);
                     if (i != j && wi.isUpdate() && oj.isUpdate()) {
                         Weight nw = oj.multiply(w).divide(wi);
-                        container.addTransition(new WTransition(j-1, i-1, nw));
+                        container.getSummary().addTransition(j-1, i-1, nw);
                         // handle alias ?
                     }
                 }
@@ -81,13 +80,12 @@ public class SpVar {
                 paramWeight.set(i, nw);
         }
     }
-    public void genSink(SinkTransition sink) {
+    public void genSink(SinkTrans sink) {
         for (int i = 0; i < paramSize; i++) {
             Weight ow = paramWeight.get(i);
             if (!ow.isZero()) {
                 Fraction fraction = ow.getFraction().multiply(sink.getFraction());
-                SinkTransition newRelation = new SinkTransition(i-1, fraction, sink.getSink());
-                container.addTransition(newRelation);
+                container.getSummary().addSink(i-1, fraction, sink.getSink());
 
             }
         }
@@ -95,6 +93,9 @@ public class SpVar {
 
     public String toString() {
         return var.toString();
+    }
+    public List<Weight> getParamWeight() {
+        return paramWeight;
     }
 
 }

@@ -5,7 +5,7 @@ import org.lambd.utils.PrimeGenerator;
 import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
 
-public record WTransition(int from, int to, Weight w) implements Transition {
+public record ArgTrans(int from, int to, Weight w) implements Transition {
     @Override
     public void apply(SpMethod method, Stmt stmt) {
         method.handleTransition(stmt, from, to, w);

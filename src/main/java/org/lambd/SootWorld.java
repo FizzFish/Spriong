@@ -3,13 +3,10 @@ package org.lambd;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lambd.transition.MethodSummary;
-import org.lambd.transition.SinkTransition;
 import org.lambd.transition.TaintConfig;
 import org.lambd.transition.Transition;
 import soot.*;
 import soot.jimple.*;
-import soot.jimple.toolkits.callgraph.CallGraph;
-import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
 
 import java.util.*;

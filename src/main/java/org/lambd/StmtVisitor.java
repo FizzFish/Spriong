@@ -2,6 +2,8 @@ package org.lambd;
 
 import org.lambd.obj.NewObj;
 import org.lambd.obj.ObjManager;
+import org.lambd.transition.MethodSummary;
+import org.lambd.transition.Weight;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -9,6 +11,7 @@ import soot.jimple.toolkits.callgraph.Edge;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 public class StmtVisitor {
@@ -138,14 +141,12 @@ public class StmtVisitor {
     public void visit(ReturnStmt stmt) {
         Value retVal = stmt.getOp();
         if (retVal instanceof Local local) {
-//            Transition transition = new OutSideTransition(-2, false, local);
-//            method.addTransition(transition);
-        } else if (retVal instanceof Constant constant){
-            // Todo
-//            ConstantObj constantObj = new ConstantObj(retVal.getType(), methodContext, constant);
+            List<Weight> w = methodContext.getVar(local).getParamWeight();
+            MethodSummary summary = methodContext.getSummary();
+            for (int i = 0; i < methodContext.getSootMethod().getParameterCount() + 1; i++)
+                if (!w.get(i).isZero())
+                    summary.addTransition(i-1, -2, w.get(i));
 
-        } else {
-            System.out.println("unsupported return type: " + retVal.getClass().getName());
         }
     }
 }
