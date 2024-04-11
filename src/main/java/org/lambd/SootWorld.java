@@ -36,7 +36,6 @@ public class SootWorld {
         G.reset();
         String sootCp = String.format("src/main/resources/rt.jar;src/main/resources/%s", jarPath);
         Options.v().set_soot_classpath(sootCp);
-        System.out.println(sootCp);
         String entryClassName = "org.apache.commons.text.StringSubstitutor";
         String entryMethodName = "java.lang.String replace(java.lang.String)";
         // 配置Soot
@@ -66,23 +65,8 @@ public class SootWorld {
 
         // 运行Soot分析
         PackManager.v().runPacks();
-
-        // 获取并处理调用图
-        CallGraph cg = Scene.v().getCallGraph();
-//        System.out.printf("Call Graph: %s\n", cg.toString());
     }
 
-    public void showCallee(SootMethod method) {
-        CallGraph cg = Scene.v().getCallGraph();
-
-
-        for (Iterator<Edge> it = cg.edgesOutOf(method); it.hasNext();) {
-            Edge edge = it.next();
-            SootMethod callee = edge.tgt(); // 获取被调用的方法
-
-            System.out.println("Callee of " + edge.srcStmt()+ ": " + callee.getName());
-        }
-    }
     List<SootMethod> visited = new ArrayList<>();
     public List<SootMethod> getVisited() {
         return visited;

@@ -38,14 +38,18 @@ public class PrimeGenerator {
         return prime;
     }
     // 素数分解
-    public List<Object> primeFactorization(long number) {
+    public String express(long number) {
         List<Object> objects = new ArrayList<>();
+        StringBuilder fields = new StringBuilder();
         for (Map.Entry<Object, Long> entry : objectPrimeMap.entrySet()) {
             if (number % entry.getValue() == 0) {
                 objects.add(entry.getKey());
             }
         }
-        return objects;
+        // reverse fields
+        for (int i = objects.size() - 1; i >= 0; i--)
+            fields.append(".").append(objects.get(i));
+        return fields.toString();
     }
 }
 

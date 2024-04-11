@@ -2,12 +2,10 @@ package org.lambd;
 
 import org.apache.commons.math3.fraction.Fraction;
 import org.lambd.transition.SinkTransition;
-import org.lambd.transition.Transition;
 import org.lambd.transition.WTransition;
 import org.lambd.transition.Weight;
 import soot.Local;
 import soot.Type;
-import soot.jimple.Stmt;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,12 +49,16 @@ public class SpVar {
         }
     }
     public void copy(SpVar other, Weight w) {
+//        if(var.getName().equals("keys"))
+//            System.out.println();
         for (int i = 0; i < locationSize; i++) {
-            Weight nw = other.paramWeight.get(i).combine(w);
+            Weight nw = other.paramWeight.get(i).multiply(w);
             Weight ow = paramWeight.get(i);
             if (nw.compareTo(ow) > 0)
                 paramWeight.set(i, nw);
         }
+//        if(var.getName().equals("keys"))
+//            System.out.println();
     }
     public void update(SpVar other, Weight w) {
         if (w.isUpdate()) {
@@ -65,16 +67,15 @@ public class SpVar {
                     Weight wi = paramWeight.get(i);
                     Weight oj = other.paramWeight.get(j);
                     if (i != j && wi.isUpdate() && oj.isUpdate()) {
-                        Weight nw = wi.combine(w).combine(oj);
+                        Weight nw = oj.multiply(w).divide(wi);
                         container.addTransition(new WTransition(j-1, i-1, nw));
-                        System.out.printf(String.format("%s: %d -> %d %s\n", container.getName(), j-1, i-1, nw));
                         // handle alias ?
                     }
                 }
-            return;
+//            return;
         }
         for (int i = 0; i < locationSize; i++) {
-            Weight nw = other.paramWeight.get(i).combine(w);
+            Weight nw = other.paramWeight.get(i).multiply(w);
             Weight ow = paramWeight.get(i);
             if (nw.compareTo(ow) > 0)
                 paramWeight.set(i, nw);
@@ -90,6 +91,10 @@ public class SpVar {
 
             }
         }
+    }
+
+    public String toString() {
+        return var.toString();
     }
 
 }

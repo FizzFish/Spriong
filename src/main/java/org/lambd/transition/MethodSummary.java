@@ -54,9 +54,9 @@ public class MethodSummary {
         transitions.forEach(t -> t.apply(method, stmt));
     }
     public void print() {
-        System.out.println(method.getName() + ": ");
+        System.out.println(method + ": ");
         for (Transition t : transitions)
-            System.out.println(t);
+            System.out.println("\t" + t);
     }
 }
 

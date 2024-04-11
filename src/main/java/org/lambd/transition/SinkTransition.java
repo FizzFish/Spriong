@@ -3,6 +3,7 @@ package org.lambd.transition;
 import org.apache.commons.math3.fraction.Fraction;
 import org.lambd.SpMethod;
 import org.lambd.utils.PrimeGenerator;
+import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
 
 public class SinkTransition implements Transition {
@@ -29,9 +30,12 @@ public class SinkTransition implements Transition {
         return fraction;
     }
     public String toString() {
-        String s1 = PrimeGenerator.v().primeFactorization(fraction.getNumerator()).toString();
-        String s2 = PrimeGenerator.v().primeFactorization(fraction.getDenominator()).toString();
-        return String.format("Sink@%d: %s, %s/%s", argIndex, realSink, s1, s2);
+        int numerator = fraction.getNumerator();
+        int denominator = fraction.getDenominator();
+        String s1 = numerator == 1? "" : PrimeGenerator.v().express(numerator);
+        String s2 = denominator == 1? "" : PrimeGenerator.v().express(denominator);
+//        return String.format("Sink@%d: %s/%s, %s", argIndex, s1, s2, realSink);
+        return String.format("%s%s sink to %s", Utils.argString(argIndex), s2, realSink);
     }
     @Override
     public void apply(SpMethod method, Stmt stmt) {

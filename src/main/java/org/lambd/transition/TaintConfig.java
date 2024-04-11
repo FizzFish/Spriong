@@ -20,7 +20,6 @@ public class TaintConfig {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
             Knowledge knowledge = mapper.readValue(new File(configFile), Knowledge.class);
-            System.out.println(knowledge);
             knowledge.transfers().forEach(transfer -> {
                 methodRefMap.put(transfer.method(),
                         transfer.transitions().stream().

@@ -12,7 +12,7 @@ public class Weight {
         this.update = update;
     }
     public Weight(Fraction fraction) {
-        this(fraction, false);
+        this(fraction, true);
     }
     public Fraction getFraction() {
         return fraction;
@@ -23,8 +23,11 @@ public class Weight {
     public boolean isZero() {
         return fraction.equals(Fraction.ZERO);
     }
-    public Weight combine(Weight other) {
-        return new Weight(fraction.add(other.fraction), update && other.update);
+    public Weight multiply(Weight other) {
+        return new Weight(fraction.multiply(other.fraction), update && other.update);
+    }
+    public Weight divide(Weight other) {
+        return new Weight(fraction.divide(other.fraction), update && other.update);
     }
     public int compareTo(Weight other) {
         return fraction.compareTo(other.fraction);

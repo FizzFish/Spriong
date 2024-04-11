@@ -1,6 +1,8 @@
 package org.lambd.transition;
 
 import org.lambd.SpMethod;
+import org.lambd.utils.PrimeGenerator;
+import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
 
 public record WTransition(int from, int to, Weight w) implements Transition {
@@ -9,7 +11,11 @@ public record WTransition(int from, int to, Weight w) implements Transition {
         method.handleTransition(stmt, from, to, w);
     }
     public String toString() {
-        return String.format("FieldTransition{ %d =%s=> %d", from, w, to);
+        int numerator = w.getFraction().getNumerator();
+        int denominator = w.getFraction().getDenominator();
+        String s1 = numerator == 1? "" : PrimeGenerator.v().express(numerator);
+        String s2 = denominator == 1? "" : PrimeGenerator.v().express(denominator);
+        return String.format("%s%s = %s%s", Utils.argString(to), s1, Utils.argString(from), s2);
     }
 
 }

@@ -49,14 +49,14 @@ public class OneObjManager implements ObjManager {
     }
     public void loadArray(Local to, Local base) {
         // x = y[i]
-        int num = (int) PrimeGenerator.v().getPrime("array");
+        int num = (int) PrimeGenerator.v().getPrime("[*]");
         Fraction fraction = new Fraction(1, num);
         Weight w = new Weight(fraction);
         method.copy(base, to, w);
     }
     public void storeArray(Local base, Local from) {
         // x[i] = y
-        int num = (int) PrimeGenerator.v().getPrime("array");
+        int num = (int) PrimeGenerator.v().getPrime("[*]");
         Fraction fraction = new Fraction(num);
         Weight w = new Weight(fraction);
         method.copy(from, base, w);
