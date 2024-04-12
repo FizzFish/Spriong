@@ -15,11 +15,11 @@ public class SootWorld {
     private static final Logger logger = LogManager.getLogger(SootWorld.class);
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
-    private String entryMethodName;
+    private List<String> sourceInfo = new ArrayList<>();
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private SootWorld() {
-        entryMethodName = new TaintConfig("src/main/resources/transfer.yml").parse(methodRefMap);
+        new TaintConfig("src/main/resources/transfer.yml").parse(methodRefMap, sourceInfo);
     }
     public static SootWorld v() {
         if (world == null) {
@@ -34,8 +34,6 @@ public class SootWorld {
         G.reset();
         String sootCp = String.format("src/main/resources/rt.jar;src/main/resources/%s", jarPath);
         Options.v().set_soot_classpath(sootCp);
-        String entryClassName = "org.apache.commons.text.StringSubstitutor";
-        String entryMethodName = "java.lang.String replace(java.lang.String)";
         // 配置Soot
         Options.v().set_whole_program(true);
         soot.options.Options.v().set_output_format(
@@ -46,10 +44,10 @@ public class SootWorld {
         Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*"));
         // 如果没有明确的入口点，可以考虑使用Scene.v().setEntryPoints()来设置应用的入口点；
         // 这里我们手动指定入口点
-        SootClass entryClass = Scene.v().loadClassAndSupport(entryClassName);
+        SootClass entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
         Scene.v().loadNecessaryClasses();
 //        entryClass.setApplicationClass();
-        SootMethod entryMethod = entryClass.getMethod(entryMethodName);
+        SootMethod entryMethod = entryClass.getMethod(sourceInfo.get(1));
         List<SootMethod> entryPoints = new ArrayList<>();
         entryPoints.add(entryMethod);
         this.entryMethod = entryMethod;
