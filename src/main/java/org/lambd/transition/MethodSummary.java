@@ -18,15 +18,23 @@ public class MethodSummary {
         this.method = method;
     }
     public void addTransition(int from, int to, Weight w) {
-        if (transitionMap.contains(from, to) && w.compareTo(transitionMap.get(from, to)) <= 0)
+        if (transitionMap.contains(from, to)) {
+            if (w.compareTo(transitionMap.get(from, to)) <= 0)
+                return;
+            transitionMap.put(from, to, w);
             return;
+        }
         transitionMap.put(from, to, w);
         ArgTrans transition = new ArgTrans(from, to, w);
         transitions.add(transition);
     }
     public void addSink(int index, Fraction fraction, String sink) {
-        if (sinkMap.contains(sink, index) && fraction.compareTo(sinkMap.get(sink, index)) <= 0)
+        if (sinkMap.contains(sink, index)) {
+            if (fraction.compareTo(sinkMap.get(sink, index)) <= 0)
+                return;
+            sinkMap.put(sink, index, fraction);
             return;
+        }
         sinkMap.put(sink, index, fraction);
         SinkTrans st = new SinkTrans(index, fraction, sink);
         transitions.add(st);

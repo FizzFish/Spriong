@@ -1,6 +1,7 @@
 package org.lambd.transition;
 
 import org.apache.commons.math3.fraction.Fraction;
+import org.lambd.utils.PrimeGenerator;
 
 public class Weight {
     private Fraction fraction;
@@ -33,7 +34,12 @@ public class Weight {
         return fraction.compareTo(other.fraction);
     }
     public String toString() {
-        return fraction + (update ? "*" : "");
+        int numerator = fraction.getNumerator();
+        int denominator = fraction.getDenominator();
+
+        String s1 = numerator == 1? "" : PrimeGenerator.v().express(numerator);
+        String s2 = denominator == 1? "" : PrimeGenerator.v().express(denominator);
+        return s1 + "/" + s2 + (update ? "*" : "");
     }
     public static Weight max(Weight w1, Weight w2) {
         if (w1.compareTo(w2) >= 0)

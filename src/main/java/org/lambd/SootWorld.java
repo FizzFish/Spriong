@@ -1,7 +1,5 @@
 package org.lambd;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.lambd.transition.MethodSummary;
 import org.lambd.transition.TaintConfig;
 import org.lambd.transition.Transition;
@@ -12,14 +10,16 @@ import soot.options.Options;
 import java.util.*;
 
 public class SootWorld {
-    private static final Logger logger = LogManager.getLogger(SootWorld.class);
     private SootMethod entryMethod = null;
     private static SootWorld world = null;
     private List<String> sourceInfo = new ArrayList<>();
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private SootWorld() {
-        new TaintConfig("src/main/resources/transfer.yml").parse(methodRefMap, sourceInfo);
+    }
+    public void readConfig(String config) {
+        String path = String.format("src/main/resources/%s", config);
+        new TaintConfig(path).parse(methodRefMap, sourceInfo);
     }
     public static SootWorld v() {
         if (world == null) {
@@ -30,9 +30,14 @@ public class SootWorld {
     public SootMethod getEntryMethod() {
         return entryMethod;
     }
-    public void loadJar(String jarPath) {
+    public void loadJar(String jars) {
         G.reset();
-        String sootCp = String.format("src/main/resources/rt.jar;src/main/resources/%s", jarPath);
+        String sourceDir = "src/main/resources/";
+        String[] parts = jars.split(";");
+        for (int i = 0; i < parts.length; i++) {
+            parts[i] = sourceDir.concat(parts[i]);
+        }
+        String sootCp = String.format("src/main/resources/rt.jar;%s", String.join(";", parts));
         Options.v().set_soot_classpath(sootCp);
         // 配置Soot
         Options.v().set_whole_program(true);
@@ -46,7 +51,6 @@ public class SootWorld {
         // 这里我们手动指定入口点
         SootClass entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
         Scene.v().loadNecessaryClasses();
-//        entryClass.setApplicationClass();
         SootMethod entryMethod = entryClass.getMethod(sourceInfo.get(1));
         List<SootMethod> entryPoints = new ArrayList<>();
         entryPoints.add(entryMethod);

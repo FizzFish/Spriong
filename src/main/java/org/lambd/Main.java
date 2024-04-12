@@ -11,9 +11,11 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
-        SootWorld.v().loadJar("commons-text-1.8.jar");
-        SootMethod entryMethod = SootWorld.v().getEntryMethod();
-        SootWorld.v().visitMethod(entryMethod);
+        SootWorld sootWorld = SootWorld.v();
+        sootWorld.readConfig(args[0]);
+        sootWorld.loadJar(args[1]);
+        SootMethod entryMethod = sootWorld.getEntryMethod();
+        sootWorld.visitMethod(entryMethod);
     }
 }
 
