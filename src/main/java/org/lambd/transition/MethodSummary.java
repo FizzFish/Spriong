@@ -11,7 +11,7 @@ import java.util.List;
 
 public class MethodSummary {
     Table<Integer, Integer, Weight> transitionMap = HashBasedTable.create();
-    Table<String, Integer, Fraction> sinkMap = HashBasedTable.create();
+    Table<String, Integer, Weight> sinkMap = HashBasedTable.create();
     List<Transition> transitions = new ArrayList<>();
     private SpMethod method;
     public MethodSummary(SpMethod method) {
@@ -28,15 +28,15 @@ public class MethodSummary {
         ArgTrans transition = new ArgTrans(from, to, w);
         transitions.add(transition);
     }
-    public void addSink(int index, Fraction fraction, String sink) {
+    public void addSink(int index, Weight weight, String sink) {
         if (sinkMap.contains(sink, index)) {
-            if (fraction.compareTo(sinkMap.get(sink, index)) <= 0)
+            if (weight.compareTo(sinkMap.get(sink, index)) <= 0)
                 return;
-            sinkMap.put(sink, index, fraction);
+            sinkMap.put(sink, index, weight);
             return;
         }
-        sinkMap.put(sink, index, fraction);
-        SinkTrans st = new SinkTrans(index, fraction, sink);
+        sinkMap.put(sink, index, weight);
+        SinkTrans st = new SinkTrans(index, weight, sink);
         transitions.add(st);
     }
     public boolean isEmpty() {

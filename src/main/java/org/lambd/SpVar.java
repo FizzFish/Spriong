@@ -38,26 +38,22 @@ public class SpVar {
     }
     public SpVar(SpMethod method, Local var, int paramIndex) {
         this(method, var);
-        paramWeight.set(paramIndex + 1, Weight.ONE);
+        paramWeight.set(paramIndex + 1, Weight.ID);
     }
     // var = new Type()
     public void assignObj(Type type) {
         int i = typeMap.get(type);
         if (Weight.ONE.compareTo(paramWeight.get(i)) > 0) {
-            paramWeight.set(i, Weight.ONE);
+            paramWeight.set(i, Weight.ID);
         }
     }
     public void copy(SpVar other, Weight w) {
-//        if(var.getName().equals("keys"))
-//            System.out.println();
         for (int i = 0; i < locationSize; i++) {
             Weight nw = other.paramWeight.get(i).multiply(w);
             Weight ow = paramWeight.get(i);
             if (nw.compareTo(ow) > 0)
                 paramWeight.set(i, nw);
         }
-//        if(var.getName().equals("keys"))
-//            System.out.println();
     }
     public void update(SpVar other, Weight w) {
         if (w.isUpdate()) {
@@ -65,8 +61,9 @@ public class SpVar {
                 for (int j = 0; j < paramSize; j++) {
                     Weight wi = paramWeight.get(i);
                     Weight oj = other.paramWeight.get(j);
-                    if (i != j && wi.isUpdate() && oj.isUpdate()) {
+                    if (i != j && !wi.isZero() && !oj.isZero()) {
                         Weight nw = oj.multiply(w).divide(wi);
+                        nw.setUpdate(true);
                         container.getSummary().addTransition(j-1, i-1, nw);
                         // handle alias ?
                     }
@@ -84,8 +81,8 @@ public class SpVar {
         for (int i = 0; i < paramSize; i++) {
             Weight ow = paramWeight.get(i);
             if (!ow.isZero()) {
-                Fraction fraction = ow.getFraction().multiply(sink.getFraction());
-                container.getSummary().addSink(i-1, fraction, sink.getSink());
+                Weight weight = ow.multiply(sink.getWeight());
+                container.getSummary().addSink(i-1, weight, sink.getSink());
 
             }
         }

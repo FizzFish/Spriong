@@ -3,11 +3,14 @@ package org.lambd;
 import org.lambd.transition.MethodSummary;
 import org.lambd.transition.TaintConfig;
 import org.lambd.transition.Transition;
+import org.lambd.utils.ClassNameExtractor;
 import soot.*;
 import soot.jimple.*;
 import soot.options.Options;
+import soot.util.Chain;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SootWorld {
     private SootMethod entryMethod = null;
@@ -30,12 +33,52 @@ public class SootWorld {
     public SootMethod getEntryMethod() {
         return entryMethod;
     }
+    public void initSoot(String jars) {
+        G.reset();
+        String sourceDir = "src/main/resources/";
+        String[] parts = jars.split(";");
+        List<String> inputClasses = new ArrayList<>();
+        for (int i = 0; i < parts.length; i++) {
+            parts[i] = sourceDir.concat(parts[i]);
+            inputClasses.addAll(ClassNameExtractor.extract(parts[i]));
+        }
+        String sootCp = String.format("src/main/resources/rt.jar;%s", String.join(";", parts));
+        Options.v().set_soot_classpath(sootCp);
+
+
+        Options.v().set_whole_program(true);
+        soot.options.Options.v().set_output_format(soot.options.Options.output_format_jimple);
+        soot.options.Options.v().set_app(true);
+        soot.options.Options.v().set_allow_phantom_refs(true);
+        soot.options.Options.v().set_no_bodies_for_excluded(true);
+        soot.options.Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*"));
+        Options.v().set_verbose(true);
+
+        for (String className : inputClasses) {
+            SootClass sootClass = Scene.v().loadClassAndSupport(className);
+            sootClass.setApplicationClass(); // 将类标记为应用程序类
+        }
+//        SootClass entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
+        Scene.v().loadNecessaryClasses();
+        soot.options.Options.v().setPhaseOption("cg.cha", "on");
+        soot.options.Options.v().setPhaseOption("cg", "all-reachable:true");
+        soot.options.Options.v().setPhaseOption("jb", "use-original-names:true");
+//        soot.options.Options.v().setPhaseOption("jb.ls", "enabled:false");
+//        Options.v().set_prepend_classpath(false);
+        PackManager.v().runPacks();
+        // 遍历所有类和方法
+        Chain<SootClass> classes = Scene.v().getClasses();
+        System.out.println("Classes size: " + classes.size());
+        this.entryMethod = Scene.v().getMethod(sourceInfo.get(1));
+    }
     public void loadJar(String jars) {
         G.reset();
         String sourceDir = "src/main/resources/";
         String[] parts = jars.split(";");
+        List<String> inputClasses = new ArrayList<>();
         for (int i = 0; i < parts.length; i++) {
             parts[i] = sourceDir.concat(parts[i]);
+            inputClasses.addAll(ClassNameExtractor.extract(parts[i]));
         }
         String sootCp = String.format("src/main/resources/rt.jar;%s", String.join(";", parts));
         Options.v().set_soot_classpath(sootCp);

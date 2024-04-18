@@ -27,9 +27,7 @@ public class OneObjManager implements ObjManager {
     }
     public void loadField(Local to, Local base, SootField field) {
         // x = y.f
-        int num = (int) PrimeGenerator.v().getPrime(field);
-        Fraction fraction = new Fraction(1, num);
-        Weight w = new Weight(fraction);
+        Weight w = new Weight(field.getName(), -1);
         method.copy(base, to, w);
     }
     public void loadStaticField(Local to, Class clazz, SootField field) {
@@ -39,9 +37,7 @@ public class OneObjManager implements ObjManager {
 
     public void storeField(Local base, SootField field, Local from) {
         // x.f = y
-        int num = (int) PrimeGenerator.v().getPrime(field);
-        Fraction fraction = new Fraction(num);
-        Weight w = new Weight(fraction);
+        Weight w = new Weight(field.getName(), 1);
         method.copy(from, base, w);
     }
     public void storeStaticField(Class clazz, SootField field, Local from) {
@@ -50,16 +46,12 @@ public class OneObjManager implements ObjManager {
     }
     public void loadArray(Local to, Local base) {
         // x = y[i]
-        int num = (int) PrimeGenerator.v().getPrime(Utils.arrayStr);
-        Fraction fraction = new Fraction(1, num);
-        Weight w = new Weight(fraction);
+        Weight w = new Weight(Utils.arrayStr, -1);
         method.copy(base, to, w);
     }
     public void storeArray(Local base, Local from) {
         // x[i] = y
-        int num = (int) PrimeGenerator.v().getPrime(Utils.arrayStr);
-        Fraction fraction = new Fraction(num);
-        Weight w = new Weight(fraction);
+        Weight w = new Weight(Utils.arrayStr, 1);
         method.copy(from, base, w);
     }
 

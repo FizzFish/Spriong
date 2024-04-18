@@ -17,11 +17,7 @@ public record ArgTrans(int from, int to, Weight w) implements Transition {
     }
 
     public String toString() {
-        int numerator = w.getFraction().getNumerator();
-        int denominator = w.getFraction().getDenominator();
-        String s1 = numerator == 1? "" : PrimeGenerator.v().express(numerator);
-        String s2 = denominator == 1? "" : PrimeGenerator.v().express(denominator);
-        return String.format("%s%s = %s%s", Utils.argString(to), s1, Utils.argString(from), s2);
+        return String.format("%s.%s = %s.%s", Utils.argString(to), w.getPositive(), Utils.argString(from), w.getNegative());
     }
 
 }

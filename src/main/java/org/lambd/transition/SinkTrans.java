@@ -9,12 +9,12 @@ import soot.jimple.Stmt;
 public class SinkTrans implements Transition {
     private String realSink;
     private int argIndex;
-    private Fraction fraction;
+    private Weight weight;
     // method.param(index) -(fraction)-> sink
-    public SinkTrans(int index, Fraction fraction, String sink)
+    public SinkTrans(int index, Weight weight, String sink)
     {
         this.argIndex = index;
-        this.fraction = fraction;
+        this.weight = weight;
         this.realSink = sink;
     }
     public String getSink()
@@ -25,17 +25,12 @@ public class SinkTrans implements Transition {
     {
         return argIndex;
     }
-    public Fraction getFraction()
+    public Weight getWeight()
     {
-        return fraction;
+        return weight;
     }
     public String toString() {
-        int numerator = fraction.getNumerator();
-        int denominator = fraction.getDenominator();
-        String s1 = numerator == 1? "" : PrimeGenerator.v().express(numerator);
-        String s2 = denominator == 1? "" : PrimeGenerator.v().express(denominator);
-//        return String.format("Sink@%d: %s/%s, %s", argIndex, s1, s2, realSink);
-        return String.format("<sink>: %s%s flow to %s", Utils.argString(argIndex), s2, realSink);
+        return String.format("<sink>: %s.%s flow to %s", Utils.argString(argIndex), weight.getNegative(), realSink);
     }
     @Override
     public void apply(SpMethod method, Stmt stmt) {

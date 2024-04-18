@@ -13,9 +13,11 @@ public class Main {
     public static void main(String[] args) {
         SootWorld sootWorld = SootWorld.v();
         sootWorld.readConfig(args[0]);
-        sootWorld.loadJar(args[1]);
+        sootWorld.initSoot(args[1]);
         SootMethod entryMethod = sootWorld.getEntryMethod();
         sootWorld.visitMethod(entryMethod);
+//        for (SootMethod v : sootWorld.getVisited())
+//            System.out.println(v.getSignature());
     }
 }
 
