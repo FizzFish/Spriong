@@ -78,34 +78,4 @@ public class ClassNameExtractor {
         }
     }
 
-    public static void main(String[] args) {
-        String pathToJar = "src/main/resources/log4j-api-2.14.0.jar"; // 设置JAR文件的路径
-
-        // 配置Soot
-        String sootCp = String.format("src/main/resources/rt.jar;%s", pathToJar);
-        Options.v().set_soot_classpath(sootCp);
-        // 配置Soot
-        Options.v().set_whole_program(true);
-        soot.options.Options.v().set_output_format(soot.options.Options.output_format_jimple);
-        soot.options.Options.v().set_app(true);
-        soot.options.Options.v().set_allow_phantom_refs(true);
-        soot.options.Options.v().set_no_bodies_for_excluded(true);
-        soot.options.Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*"));
-
-        for (String className : extractJar(pathToJar)) {
-            SootClass sootClass = Scene.v().loadClassAndSupport(className);
-            sootClass.setApplicationClass(); // 将类标记为应用程序类
-        }
-        Scene.v().loadNecessaryClasses();
-        PackManager.v().runPacks();
-        // 遍历所有类和方法
-        Chain<SootClass> classes = Scene.v().getClasses();
-        System.out.println("Classes size: " + classes.size());
-//        for (SootClass sc : Scene.v().getClasses()) {
-//            System.out.println("Class: " + sc.getName());
-//            for (SootMethod sm : sc.getMethods()) {
-//                System.out.println("  Method: " + sm.getSignature());
-//            }
-//        }
-    }
 }

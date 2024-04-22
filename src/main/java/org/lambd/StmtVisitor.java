@@ -50,9 +50,10 @@ public class StmtVisitor {
         if (!world.quickMethodRef(signature, methodContext, stmt)) {
             Set<SootMethod> callees = getCallee(stmt, invoke);
             for (SootMethod callee : callees) {
-                if (world.getVisited().contains(callee))
-                    continue;
-                if (!world.quickCallee(callee, methodContext, stmt)) {
+                if (world.getVisited().contains(callee)) {
+                    if (methodContext.getSootMethod() != callee)
+                        world.quickCallee(callee, methodContext, stmt);
+                } else {
                     SootWorld.v().visitMethod(callee);
                     world.quickCallee(callee, methodContext, stmt);
                 }
