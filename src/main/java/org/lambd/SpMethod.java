@@ -12,9 +12,8 @@ public class SpMethod {
     private final List<Type> paramTypes;
     private final SootClass clazz;
     public final String name;
-    private Map<Local, SpVar> spVars = new HashMap<>();
+    private VarRelation varRelation;
     private MethodSummary summary;
-    private List<Type> genTypes;
     private ObjManager manager;
     public SpMethod(SootMethod sootMethod) {
         this.paramTypes = sootMethod.getParameterTypes();
@@ -23,36 +22,7 @@ public class SpMethod {
         this.sootMethod = sootMethod;
         summary = new MethodSummary(this);
         manager = new OneObjManager(this);
-        initParam();
-    }
-    private void initParam() {
-        Body body;
-        try {
-            body = sootMethod.getActiveBody();
-        } catch (Exception e) {
-            return;
-        }
-        Set<Type> typeSet = new HashSet<>();
-        body.getUnits().forEach(stmt -> {
-            if (stmt instanceof AssignStmt assignStmt) {
-                Value rhs = assignStmt.getRightOp();
-                if (rhs instanceof AnyNewExpr newExpr)
-                    typeSet.add(newExpr.getType());
-                else if (rhs instanceof InvokeExpr invokeExpr)
-                    typeSet.add(invokeExpr.getMethod().getReturnType());
-            }
-        });
-        genTypes = typeSet.stream().toList();
-
-        List<Local> parameters = body.getParameterLocals();
-        for (int i = 0; i < paramTypes.size(); i++) {
-            Local var = parameters.get(i);
-            spVars.put(var, new SpVar(this, var, i));
-        }
-        if (!sootMethod.isStatic()) {
-            Local thisVar = sootMethod.getActiveBody().getThisLocal();
-            spVars.put(thisVar, new SpVar(this, thisVar, -1));
-        }
+        varRelation = new VarRelation(this);
     }
 
     private Value getParameter(Stmt stmt, int i) {
@@ -81,39 +51,27 @@ public class SpMethod {
         }
         return null;
     }
-    public SpVar getVar(Value val) {
-        if (!(val instanceof Local))
-            return null;
-        if (spVars.containsKey(val))
-            return spVars.get(val);
-        SpVar spvar = new SpVar(this, (Local) val);
-        spVars.put((Local) val, spvar);
-        return spvar;
-    }
-    private SpVar getParamVar(Stmt stmt, int i) {
-        return getVar(getParameter(stmt, i));
-    }
     public void handleTransition(Stmt stmt, int from, int to, Weight w) {
-        SpVar fromVar = getParamVar(stmt, from);
-        SpVar toVar = getParamVar(stmt, to);
-        if (fromVar == null || toVar == null || fromVar == toVar)
+        Value fromVar = getParameter(stmt, from);
+        Value toVar = getParameter(stmt, to);
+        if (fromVar == toVar)
             return;
-        toVar.update(fromVar, w);
-
+        if (fromVar instanceof Local l1 && toVar instanceof Local l2)
+            varRelation.update(l1, l2, w);
     }
     public void copy(Local from, Local to, Weight w) {
-        SpVar fromVar = getVar(from);
-        SpVar toVar = getVar(to);
-        if (fromVar == null || toVar == null)
+        if (from == null || to == null || from == to)
             return;
-        toVar.copy(fromVar, w);
+        varRelation.update(from, to, w);
     }
     public void handleSink(Stmt stmt, SinkTrans sink) {
         int index = sink.getIndex();
-        SpVar var = getParamVar(stmt, index);
-        if (var == null)
-            return;
-        var.genSink(sink);
+        Value var = getParameter(stmt, index);
+        if (var instanceof Local l)
+            varRelation.genSink(sink, l);
+    }
+    public void handleReturn(Local retVar) {
+        varRelation.genReturn(retVar);
     }
 
     public String getName() {
@@ -124,9 +82,6 @@ public class SpMethod {
     }
     public String toString() {
         return sootMethod.toString();
-    }
-    public List<Type> getGenTypes() {
-        return genTypes;
     }
     public ObjManager getManager() {
         return manager;

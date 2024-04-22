@@ -2,7 +2,6 @@ package org.lambd.obj;
 
 import org.apache.commons.math3.fraction.Fraction;
 import org.lambd.SpMethod;
-import org.lambd.SpVar;
 import org.lambd.transition.Weight;
 import org.lambd.utils.PrimeGenerator;
 import org.lambd.utils.Utils;

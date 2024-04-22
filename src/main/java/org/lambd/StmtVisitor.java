@@ -74,9 +74,9 @@ public class StmtVisitor {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-                SpVar var = methodContext.getVar(lhs);
-                if (var != null)
-                    var.assignObj(newExpr.getType());
+//                SpVar var = methodContext.getVar(lhs);
+//                if (var != null)
+//                    var.assignObj(newExpr.getType());
             } else if (rhs instanceof Constant) {
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
@@ -142,12 +142,7 @@ public class StmtVisitor {
     public void visit(ReturnStmt stmt) {
         Value retVal = stmt.getOp();
         if (retVal instanceof Local local) {
-            List<Weight> w = methodContext.getVar(local).getParamWeight();
-            MethodSummary summary = methodContext.getSummary();
-            for (int i = 0; i < methodContext.getSootMethod().getParameterCount() + 1; i++)
-                if (!w.get(i).isZero())
-                    summary.addTransition(i-1, -2, w.get(i));
-
+            methodContext.handleReturn(local);
         }
     }
 }

@@ -2,7 +2,6 @@ package org.lambd.transition;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import org.apache.commons.math3.fraction.Fraction;
 import org.lambd.SpMethod;
 import soot.jimple.Stmt;
 

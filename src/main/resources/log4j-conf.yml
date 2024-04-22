@@ -33,7 +33,7 @@ transfers:
   - method: '<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>'
     transitions:
       - {from: 0, to: -2, kind: 1}
-      - {from: 0, to: -1, kind: 1}
+#      - {from: 0, to: -1, kind: 1}
 #  - method: '<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.CharSequence)>'
 #    transitions:
 #      - { from: 0, to: -2, kind: 1 }
