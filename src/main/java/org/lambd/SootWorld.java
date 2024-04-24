@@ -60,8 +60,12 @@ public class SootWorld {
         }
 //        SootClass entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
         Scene.v().loadNecessaryClasses();
-        soot.options.Options.v().setPhaseOption("cg.cha", "on");
+//        soot.options.Options.v().setPhaseOption("cg.cha", "on");
         soot.options.Options.v().setPhaseOption("cg", "all-reachable:true");
+        Options.v().setPhaseOption("cg.spark", "on");
+        Options.v().setPhaseOption("cg.spark", "rta:true");  // 开启RTA
+        Options.v().setPhaseOption("cg.spark", "on-fly-cg:false"); // 禁用即时调用图生成
+
         soot.options.Options.v().setPhaseOption("jb", "use-original-names:true");
 //        soot.options.Options.v().setPhaseOption("jb.ls", "enabled:false");
 //        Options.v().set_prepend_classpath(false);
@@ -146,7 +150,7 @@ public class SootWorld {
             Unit unit = it.next();
             visitor.visit((Stmt) unit);
         }
-        spMethod.getSummary().print(false);
+        spMethod.getSummary().print(true);
     }
     public SpMethod getMethod(SootMethod method) {
         if (methodMap.containsKey(method))

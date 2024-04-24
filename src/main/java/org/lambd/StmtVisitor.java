@@ -61,7 +61,7 @@ public class StmtVisitor {
                 }
             }
             // check methodRef again
-            world.quickMethodRef(signature, methodContext, stmt);
+//            world.quickMethodRef(signature, methodContext, stmt);
         }
     }
     public void visit(AssignStmt stmt) {
