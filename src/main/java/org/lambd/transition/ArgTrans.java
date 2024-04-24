@@ -11,11 +11,6 @@ public record ArgTrans(int from, int to, Weight w) implements Transition {
         method.handleTransition(stmt, from, to, w);
     }
 
-    @Override
-    public boolean isReturnTrans() {
-        return to == -2;
-    }
-
     public String toString() {
         return String.format("%s.%s = %s.%s", Utils.argString(to), w.getPositive(), Utils.argString(from), w.getNegative());
     }

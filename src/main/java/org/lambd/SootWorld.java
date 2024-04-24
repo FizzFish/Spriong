@@ -146,7 +146,7 @@ public class SootWorld {
             Unit unit = it.next();
             visitor.visit((Stmt) unit);
         }
-        spMethod.getSummary().print(true);
+        spMethod.getSummary().print(false);
     }
     public SpMethod getMethod(SootMethod method) {
         if (methodMap.containsKey(method))

@@ -46,6 +46,8 @@ public class StmtVisitor {
     }
     private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
         String signature = invoke.getMethodRef().getSignature();
+        if (signature.contains("getConnection"))
+            return;
         SootWorld world = SootWorld.v();
         if (!world.quickMethodRef(signature, methodContext, stmt)) {
             Set<SootMethod> callees = getCallee(stmt, invoke);

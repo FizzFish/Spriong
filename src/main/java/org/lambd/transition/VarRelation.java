@@ -5,11 +5,6 @@ import com.google.common.collect.Table;
 import org.lambd.SpMethod;
 import soot.Body;
 import soot.Local;
-import soot.Type;
-import soot.Value;
-import soot.jimple.AnyNewExpr;
-import soot.jimple.AssignStmt;
-import soot.jimple.InvokeExpr;
 
 import java.util.*;
 
@@ -53,33 +48,45 @@ public class VarRelation {
         relations.cellSet().stream()
                 .filter(e -> e.getColumnKey() == from)
                 .forEach(e -> rowsToUpdate.add(e.getRowKey()));
-        rowsToUpdate.forEach(rowKey -> updateRelations(rowKey, from, to, w));
+        Table<Integer, Integer, Weight> addRelations = HashBasedTable.create();
+        rowsToUpdate.forEach(rowKey -> updateRelations(rowKey, from, to, w, addRelations));
+        addRelations.cellSet().forEach(e -> {
+            relations.put(e.getRowKey(), e.getColumnKey(), e.getValue());
+        });
     }
-    private void updateRelations(int i, int from, int to, Weight w) {
+    private void updateRelations(int i, int from, int to, Weight w, Table<Integer, Integer, Weight> addRelations) {
         Weight ow = relations.get(i, to);
-        Weight nw = relations.get(i, from).multiply(w);
-
-        if (ow == null || nw.compareTo(ow) > 0)
-            relations.put(i, to, nw);
-        if (w.isUpdate()) {
-//            List<Integer> aliasList = new ArrayList<>();
+        Weight w0 = relations.get(i, from);
+        Weight nw = w.multiply(w0);
+        if (w.hasEffect()) {
+            // transition: y = x.w, x=argi.w0, y=argj.w1
             relations.cellSet().stream()
                     .filter(e -> e.getColumnKey() == to && e.getRowKey() != i)
                     .forEach(e -> {
-                    Weight uw = nw.divide(e.getValue());
-                    uw.setUpdate(true);
-//                    aliasList.add(e.getRowKey());
-                    container.getSummary().addTransition(i, e.getRowKey(), uw);
-                });
+                        // from = argi.w0, to = argj.w1, check whether w0 cover w1
+                        Weight w1 = e.getValue();
+                        if (w.isUpdate() || Weight.checkStore(w0, w1, w)) {
+                            Weight uw = nw.divide(e.getValue());
+                            container.getSummary().addTransition(i, e.getRowKey(), uw);
+                        }
+
+                    });
             // handle alias
         }
+        // load: y=x.w, x=argi.w0, y=argj.w1
+        if (Weight.checkLoad(w0, w)) {
+            if (ow == null || nw.compareTo(ow) > 0)
+                addRelations.put(i, to, nw);
+        }
     }
-    public void genSink(SinkTrans sink, Local var) {
+    public void genSink(String sink, Weight w, Local var) {
         int index = getVarIndex(var);
         relations.cellSet().stream()
                 .filter(e -> e.getColumnKey() == index)
                 .forEach(e -> {
-                    container.getSummary().addSink(e.getRowKey(), e.getValue().multiply(sink.getWeight()), sink.getSink());
+                    Weight nw = e.getValue().multiply(w);
+                    if (!nw.hasOverField())
+                        container.getSummary().addSink(e.getRowKey(), nw, sink);
                 });
     }
     public void genReturn(Local retVar) {

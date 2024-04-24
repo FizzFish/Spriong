@@ -1,13 +1,11 @@
 package org.lambd.transition;
 
-import org.apache.commons.math3.fraction.Fraction;
 import org.lambd.SpMethod;
-import org.lambd.utils.PrimeGenerator;
 import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
 
 public class SinkTrans implements Transition {
-    private String realSink;
+    private String sinkDes;
     private int argIndex;
     private Weight weight;
     // method.param(index) -(fraction)-> sink
@@ -15,11 +13,11 @@ public class SinkTrans implements Transition {
     {
         this.argIndex = index;
         this.weight = weight;
-        this.realSink = sink;
+        this.sinkDes = sink;
     }
     public String getSink()
     {
-        return realSink;
+        return sinkDes;
     }
     public int getIndex()
     {
@@ -30,10 +28,15 @@ public class SinkTrans implements Transition {
         return weight;
     }
     public String toString() {
-        return String.format("<sink>: %s.%s flow to %s", Utils.argString(argIndex), weight.getNegative(), realSink);
+        return String.format("<sink>: %s.%s/%s flow to %s", Utils.argString(argIndex), weight.getNegative(), weight.getPositive(), sinkDes);
     }
     @Override
     public void apply(SpMethod method, Stmt stmt) {
-        method.handleSink(stmt, this);
+        method.handleSink(stmt, sinkDes, argIndex, weight);
+    }
+
+    @Override
+    public boolean debugTrans() {
+        return true;
     }
 }

@@ -64,11 +64,10 @@ public class SpMethod {
             return;
         varRelation.update(from, to, w);
     }
-    public void handleSink(Stmt stmt, SinkTrans sink) {
-        int index = sink.getIndex();
+    public void handleSink(Stmt stmt, String sink, int index, Weight w) {
         Value var = getParameter(stmt, index);
         if (var instanceof Local l)
-            varRelation.genSink(sink, l);
+            varRelation.genSink(sink, w, l);
     }
     public void handleReturn(Local retVar) {
         varRelation.genReturn(retVar);

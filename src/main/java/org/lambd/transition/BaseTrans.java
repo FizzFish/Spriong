@@ -8,9 +8,6 @@ public record BaseTrans(int from, int to, int kind) implements Transition {
     public String toString() {
         return "(" + from + ", " + to + ", " + kind +")";
     }
-    public boolean isReturnTrans() {
-        return to == -2;
-    }
     @Override
     public void apply(SpMethod method, Stmt stmt) {
         Weight relation = Weight.ONE;
