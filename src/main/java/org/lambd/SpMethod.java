@@ -1,6 +1,7 @@
 package org.lambd;
 
 import org.lambd.obj.*;
+import org.lambd.pointer.PointerToSet;
 import org.lambd.transition.*;
 import soot.*;
 import soot.jimple.*;

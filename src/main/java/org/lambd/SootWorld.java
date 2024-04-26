@@ -75,45 +75,6 @@ public class SootWorld {
         System.out.println("Classes size: " + classes.size());
         this.entryMethod = Scene.v().getMethod(sourceInfo.get(1));
     }
-    public void loadJar(String jars) {
-        G.reset();
-        String sourceDir = "src/main/resources/";
-        String[] parts = jars.split(";");
-        List<String> inputClasses = new ArrayList<>();
-        for (int i = 0; i < parts.length; i++) {
-            parts[i] = sourceDir.concat(parts[i]);
-            inputClasses.addAll(ClassNameExtractor.extract(parts[i]));
-        }
-        String sootCp = String.format("src/main/resources/rt.jar;%s", String.join(";", parts));
-        Options.v().set_soot_classpath(sootCp);
-        // 配置Soot
-        Options.v().set_whole_program(true);
-        soot.options.Options.v().set_output_format(
-                soot.options.Options.output_format_jimple);
-        soot.options.Options.v().set_app(true);
-        Options.v().set_allow_phantom_refs(true);
-        Options.v().set_no_bodies_for_excluded(true);
-        Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*"));
-        // 如果没有明确的入口点，可以考虑使用Scene.v().setEntryPoints()来设置应用的入口点；
-        // 这里我们手动指定入口点
-        SootClass entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
-        Scene.v().loadNecessaryClasses();
-        SootMethod entryMethod = entryClass.getMethod(sourceInfo.get(1));
-        List<SootMethod> entryPoints = new ArrayList<>();
-        entryPoints.add(entryMethod);
-        this.entryMethod = entryMethod;
-        Scene.v().setEntryPoints(entryPoints);
-
-        Options.v().setPhaseOption("cg.cha", "on");
-        Options.v().setPhaseOption("cg", "all-reachable:true");
-        Options.v().setPhaseOption("jb", "use-original-names:true");
-        Options.v().setPhaseOption("jb.ls", "enabled:false");
-        Options.v().set_prepend_classpath(false);
-
-        // 运行Soot分析
-        PackManager.v().runPacks();
-    }
-
     List<SootMethod> visited = new ArrayList<>();
     public List<SootMethod> getVisited() {
         return visited;
