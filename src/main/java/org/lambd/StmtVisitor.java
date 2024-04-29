@@ -2,7 +2,6 @@ package org.lambd;
 
 import org.lambd.obj.NewObj;
 import org.lambd.obj.ObjManager;
-import org.lambd.transition.MethodSummary;
 import org.lambd.transition.Weight;
 import soot.*;
 import soot.jimple.*;
@@ -60,8 +59,6 @@ public class StmtVisitor {
                     world.quickCallee(callee, methodContext, stmt);
                 }
             }
-            // check methodRef again
-//            world.quickMethodRef(signature, methodContext, stmt);
         }
     }
     public void visit(AssignStmt stmt) {
@@ -76,9 +73,7 @@ public class StmtVisitor {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-//                SpVar var = methodContext.getVar(lhs);
-//                if (var != null)
-//                    var.assignObj(newExpr.getType());
+                objManager.handleNew(lvar, newExpr.getType());
             } else if (rhs instanceof Constant) {
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f

@@ -1,5 +1,6 @@
 package org.lambd;
 
+import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.lambd.obj.*;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transition.*;
@@ -13,17 +14,17 @@ public class SpMethod {
     private final List<Type> paramTypes;
     private final SootClass clazz;
     public final String name;
-    private VarRelation varRelation;
-    private MethodSummary summary;
+    private Summary summary;
     private ObjManager manager;
+    private PointerToSet ptset;
     public SpMethod(SootMethod sootMethod) {
         this.paramTypes = sootMethod.getParameterTypes();
         this.clazz = sootMethod.getDeclaringClass();
         this.name = sootMethod.getName();
         this.sootMethod = sootMethod;
-        summary = new MethodSummary(this);
-        manager = new OneObjManager(this);
-        varRelation = new VarRelation(this);
+        summary = new Summary(this);
+        ptset = new PointerToSet(this);
+        manager = new OneObjManager(this, ptset);
     }
 
     private Value getParameter(Stmt stmt, int i) {
@@ -58,20 +59,15 @@ public class SpMethod {
         if (fromVar == toVar)
             return;
         if (fromVar instanceof Local l1 && toVar instanceof Local l2)
-            varRelation.update(l1, l2, w);
-    }
-    public void copy(Local from, Local to, Weight w) {
-        if (from == null || to == null || from == to)
-            return;
-        varRelation.update(from, to, w);
+            ptset.update(l1, l2, w);
     }
     public void handleSink(Stmt stmt, String sink, int index, Weight w) {
         Value var = getParameter(stmt, index);
         if (var instanceof Local l)
-            varRelation.genSink(sink, w, l);
+            ptset.genSink(sink, w, l);
     }
     public void handleReturn(Local retVar) {
-        varRelation.genReturn(retVar);
+        ptset.genReturn(retVar);
     }
 
     public String getName() {
@@ -86,7 +82,7 @@ public class SpMethod {
     public ObjManager getManager() {
         return manager;
     }
-    public MethodSummary getSummary() {
+    public Summary getSummary() {
         return summary;
     }
 }

@@ -1,6 +1,6 @@
 package org.lambd;
 
-import org.lambd.transition.MethodSummary;
+import org.lambd.transition.Summary;
 import org.lambd.transition.TaintConfig;
 import org.lambd.transition.Transition;
 import org.lambd.utils.ClassNameExtractor;
@@ -92,7 +92,7 @@ public class SootWorld {
     }
     public boolean quickCallee(SootMethod callee, SpMethod caller, Stmt stmt) {
         // 1. transition or sink not enter
-        MethodSummary summary = getMethod(callee).getSummary();
+        Summary summary = getMethod(callee).getSummary();
         if (!summary.isEmpty()) {
             summary.apply(caller, stmt);
             return true;

@@ -28,7 +28,7 @@ public class SinkTrans implements Transition {
         return weight;
     }
     public String toString() {
-        return String.format("<sink>: %s.%s/%s flow to %s", Utils.argString(argIndex), weight.getNegative(), weight.getPositive(), sinkDes);
+        return String.format("<sink>: %s.%s flow to %s", Utils.argString(argIndex), weight, sinkDes);
     }
     @Override
     public void apply(SpMethod method, Stmt stmt) {

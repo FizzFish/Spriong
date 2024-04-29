@@ -4,6 +4,7 @@ import org.lambd.transition.Weight;
 import soot.Local;
 import soot.SootField;
 import soot.SootMethod;
+import soot.Type;
 
 public interface ObjManager {
     void copy(Local from, Local to);
@@ -19,4 +20,6 @@ public interface ObjManager {
     void loadArray(Local to, Local base);
     // x[i] = y
     void storeArray(Local base, Local from);
+
+    void handleNew(Local var, Type type);
 }

@@ -1,6 +1,8 @@
 package org.lambd.pointer;
 
-public class ArrayIndex implements Pointer {
+import org.lambd.obj.Obj;
+
+public class ArrayIndex extends Pointer {
     private Obj base;
     public ArrayIndex(Obj base) {
         this.base = base;

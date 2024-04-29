@@ -1,29 +1,21 @@
 package org.lambd.obj;
 
-import org.apache.commons.math3.fraction.Fraction;
 import org.lambd.SpMethod;
-import org.lambd.pointer.InstanceField;
-import org.lambd.pointer.PointerToSet;
-import org.lambd.pointer.StaticField;
-import org.lambd.pointer.VarPointer;
+import org.lambd.pointer.*;
 import org.lambd.transition.Weight;
-import org.lambd.utils.PrimeGenerator;
 import org.lambd.utils.Utils;
 import soot.Local;
 import soot.SootField;
-import soot.SootMethod;
-
-import java.util.HashMap;
-import java.util.Map;
+import soot.Type;
 
 public class OneObjManager implements ObjManager {
-    private final SpMethod method;
+    private final SpMethod container;
     private PointerToSet ptset;
 
-    public OneObjManager(SpMethod method)
+    public OneObjManager(SpMethod container, PointerToSet ptset)
     {
-        this.method = method;
-        ptset = new PointerToSet(method);
+        this.container = container;
+        this.ptset = ptset;
     }
 
     @Override
@@ -33,14 +25,14 @@ public class OneObjManager implements ObjManager {
         ptset.copy(fromPointer, toPointer);
     }
     public void loadField(Local to, Local base, SootField field) {
-        // x = y.f -> w(y,x) = f
+        // x = y.f
         ptset.getLocalObjs(base).forEach(obj -> {
-            InstanceField fromPointer = ptset.getInstanceField(obj, field);
+            InstanceField fromPointer = ptset.getInstanceField(obj, field.getName());
             VarPointer toPointer = ptset.getVarPointer(to);
             ptset.copy(fromPointer, toPointer);
         });
-
     }
+
     public void loadStaticField(Local to, Class clazz, SootField field) {
         // x = C.f
         StaticField fromPointer = ptset.getStaticField(field);
@@ -51,9 +43,11 @@ public class OneObjManager implements ObjManager {
     public void storeField(Local base, SootField field, Local from) {
         // x.f = y -> w(y,x) = 1/f
         // analysis alias
+        VarPointer fromPointer = ptset.getVarPointer(from);
         ptset.getLocalObjs(base).forEach(obj -> {
-            VarPointer fromPointer = ptset.getVarPointer(from);
-            InstanceField toPointer = ptset.getInstanceField(obj, field);
+            InstanceField toPointer = ptset.getInstanceField(obj, field.getName());
+            if (obj instanceof FormatObj formatObj)
+                ptset.storeAlias(fromPointer, formatObj, field.getName());
             ptset.copy(fromPointer, toPointer);
         });
     }
@@ -65,14 +59,26 @@ public class OneObjManager implements ObjManager {
     }
     public void loadArray(Local to, Local base) {
         // x = y[i]
-        Weight w = new Weight(Utils.arrayStr, 1);
-        method.copy(base, to, w);
+        ptset.getLocalObjs(base).forEach(obj -> {
+//            assert obj instanceof ArrayObj;
+            InstanceField fromPointer = ptset.getInstanceField(obj, Utils.arrayStr);
+            VarPointer toPointer = ptset.getVarPointer(to);
+            ptset.copy(fromPointer, toPointer);
+        });
     }
     public void storeArray(Local base, Local from) {
         // x[i] = y
-        Weight w = new Weight(Utils.arrayStr, -1);
-        w.setUpdate(Weight.EFFECT);
-        method.copy(from, base, w);
+        ptset.getLocalObjs(base).forEach(obj -> {
+            VarPointer fromPointer = ptset.getVarPointer(from);
+            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayStr);
+            if (obj instanceof FormatObj formatObj)
+                ptset.storeAlias(fromPointer, formatObj, Utils.arrayStr);
+            ptset.copy(fromPointer, toPointer);
+        });
+    }
+    public void handleNew(Local var, Type type) {
+        Obj obj = new NewObj(type, container);
+        ptset.addLocal(var, obj);
     }
 
 }
