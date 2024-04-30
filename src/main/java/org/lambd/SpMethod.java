@@ -61,6 +61,14 @@ public class SpMethod {
         if (fromVar instanceof Local l1 && toVar instanceof Local l2)
             ptset.update(l1, l2, w);
     }
+
+    /**
+     * get the var of arg index, and var.fields exists and can hold string
+     * @param stmt current invoke stmt
+     * @param sink sink description
+     * @param index arg index can transfer to sink
+     * @param w fields of arg can transfer to sink
+     */
     public void handleSink(Stmt stmt, String sink, int index, Weight w) {
         Value var = getParameter(stmt, index);
         if (var instanceof Local l)

@@ -70,9 +70,9 @@ public class OneObjManager implements ObjManager {
         // x[i] = y
         ptset.getLocalObjs(base).forEach(obj -> {
             VarPointer fromPointer = ptset.getVarPointer(from);
-            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayStr);
             if (obj instanceof FormatObj formatObj)
                 ptset.storeAlias(fromPointer, formatObj, Utils.arrayStr);
+            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayStr);
             ptset.copy(fromPointer, toPointer);
         });
     }

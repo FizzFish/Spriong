@@ -6,9 +6,7 @@ import org.lambd.obj.FormatObj;
 import org.lambd.obj.GenObj;
 import org.lambd.obj.Obj;
 import org.lambd.transition.Weight;
-import soot.Body;
-import soot.Local;
-import soot.SootField;
+import soot.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,12 +44,19 @@ public class PointerToSet {
         vp.add(obj);
     }
     public void copy(Pointer from, Pointer to) {
+        if (from == null || to == null)
+            return;
         to.addAll(from.getObjs());
     }
     public void update(Local from, Local to, Weight weight) {
         // to.w2 = from.w1
-        Set<Obj> objs = varFields(from, weight.getFromFields())
-                .flatMap(Pointer::objs).collect(Collectors.toSet());
+        Set<Pointer> fields = varFields(from, weight.getFromFields());
+        if (fields.isEmpty())
+            return;
+        Set<Obj> objs = fields.stream()
+                .flatMap(Pointer::objs)
+                .collect(Collectors.toSet());
+
         varFields(to, weight.getToFields()).forEach(toPointer -> {
             if (weight.isUpdate()) {
                 toPointer.formatObjs().forEach(tfObj -> {
@@ -64,6 +69,7 @@ public class PointerToSet {
             }
             toPointer.addAll(objs);
         });
+
 
     }
     public void storeAlias(VarPointer from, FormatObj base, String field) {
@@ -82,12 +88,20 @@ public class PointerToSet {
     }
     public void genSink(String sink, Weight weight, Local var) {
         // var.w => sink
-        varFields(var, weight.getFromFields()).
+        varFields(var, weight.getFromFields()).stream().
                 flatMap(Pointer::formatObjs)
                 .forEach(o -> {
-                    Weight w = new Weight(o.getFields());
-                    container.getSummary().addSink(o.getIndex(), w, sink);
+                    if (canHoldString(o.type)) {
+                        Weight w = new Weight(o.getFields());
+                        container.getSummary().addSink(o.getIndex(), w, sink);
+                    }
                 });
+    }
+    private boolean canHoldString(Type type) {
+        String typeStr = type.toString();
+        if (typeStr.equals("java.lang.String") || typeStr.equals("char[]"))
+            return true;
+        return false;
     }
     public VarPointer getVarPointer(Local var) {
         return vars.computeIfAbsent(var,
@@ -98,19 +112,37 @@ public class PointerToSet {
             return fields.get(base, field);
         InstanceField ifield = new InstanceField(base, field);
         if (base instanceof FormatObj fobj) {
-            GenObj gobj = new GenObj(fobj, field);
+            Type type = fieldType(fobj, field);
+            if (type == null)
+                return null;
+            GenObj gobj = new GenObj(fobj, field, type);
             ifield.add(gobj);
         }
         fields.put(base, field, ifield);
         return ifield;
     }
-    public Stream<Pointer> varFields(Local var, List<String> fields) {
-        Stream<Pointer> pointers = Stream.of(getVarPointer(var));
+    private Type fieldType(FormatObj base, String field) {
+        Type baseType = base.type;
+        if (!field.equals("[*]") && baseType instanceof RefType refType) {
+            try {
+                return refType.getSootClass().getFieldByName(field).getType();
+            } catch (Exception e) {
+                return null;
+            }
+
+        }
+        return baseType;
+
+    }
+    public Set<Pointer> varFields(Local var, List<String> fields) {
+        Set<Pointer> pointers = Set.of(getVarPointer(var));
         for (String field : fields) {
-            pointers = pointers.flatMap(Pointer::objs)
-                    .map(o -> getInstanceField(o, field));
-//            if (pointers.noneMatch(x -> true))
-//                break;
+            pointers = pointers.stream().flatMap(Pointer::objs)
+                    .map(o -> getInstanceField(o, field))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (pointers.isEmpty())
+                return pointers;
         }
         return pointers;
     }
