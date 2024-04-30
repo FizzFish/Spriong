@@ -40,7 +40,7 @@ public class Weight {
     public String toString() {
         String base;
         if (srcFields.isEmpty() && dstFields.isEmpty())
-            base = "1";
+            base = "one";
         else if (srcFields.isEmpty())
             base = "-" + dstFields;
         else if (dstFields.isEmpty())

@@ -107,8 +107,7 @@ public class SootWorld {
         SpMethod spMethod = new SpMethod(method);
         methodMap.put(method, spMethod);
         StmtVisitor visitor = new StmtVisitor(spMethod);
-        for (Iterator<Unit> it = method.getActiveBody().getUnits().iterator(); it.hasNext();) {
-            Unit unit = it.next();
+        for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);
         }
         spMethod.getSummary().print(true);

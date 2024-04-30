@@ -99,7 +99,7 @@ public class PointerToSet {
     }
     private boolean canHoldString(Type type) {
         String typeStr = type.toString();
-        if (typeStr.equals("java.lang.String") || typeStr.equals("char[]"))
+        if (typeStr.equals("java.lang.String") || typeStr.equals("java.lang.StringBuilder") || typeStr.equals("char[]"))
             return true;
         return false;
     }
