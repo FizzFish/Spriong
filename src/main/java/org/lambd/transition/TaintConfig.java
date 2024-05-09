@@ -30,7 +30,7 @@ public class TaintConfig {
             });
             knowledge.sinks().forEach(sink -> {
                 List<Transition> sinkList = new ArrayList<>();
-                sinkList.add(new SinkTrans(sink.index(), Weight.ONE, sink.method()));
+                sinkList.add(new SinkTrans(sink.method(), sink.index(), Weight.ONE));
                 methodRefMap.put(sink.method(), sinkList);
             });
             // 输出结果，验证是否正确解析

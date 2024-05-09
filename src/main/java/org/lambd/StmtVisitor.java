@@ -45,21 +45,27 @@ public class StmtVisitor {
     }
     private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
         String signature = invoke.getMethodRef().getSignature();
+        boolean isSystemCallee = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
         if (signature.contains("getConnection"))
             return;
         SootWorld world = SootWorld.v();
         if (!world.quickMethodRef(signature, methodContext, stmt)) {
+            if (isSystemCallee)
+                return;
             Set<SootMethod> callees = getCallee(stmt, invoke);
             for (SootMethod callee : callees) {
                 if (world.getVisited().contains(callee)) {
                     if (methodContext.getSootMethod() != callee)
                         world.quickCallee(callee, methodContext, stmt);
                 } else {
-                    SootWorld.v().visitMethod(callee);
+                    SootWorld.v().visitMethod(callee, methodContext);
                     world.quickCallee(callee, methodContext, stmt);
                 }
             }
         }
+    }
+    private boolean isSystemCallee(String signature) {
+        return signature.contains("java.lang.System");
     }
     public void visit(AssignStmt stmt) {
         Value lhs = stmt.getLeftOp();

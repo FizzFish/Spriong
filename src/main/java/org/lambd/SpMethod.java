@@ -17,7 +17,11 @@ public class SpMethod {
     private Summary summary;
     private ObjManager manager;
     private PointerToSet ptset;
-    public SpMethod(SootMethod sootMethod) {
+    private int id = 0;
+    private SpMethod caller;
+    public SpMethod(SootMethod sootMethod, int id, SpMethod caller) {
+        this.id = id;
+        this.caller = caller;
         this.paramTypes = sootMethod.getParameterTypes();
         this.clazz = sootMethod.getDeclaringClass();
         this.name = sootMethod.getName();
@@ -69,10 +73,10 @@ public class SpMethod {
      * @param index arg index can transfer to sink
      * @param w fields of arg can transfer to sink
      */
-    public void handleSink(Stmt stmt, String sink, int index, Weight w) {
+    public void handleSink(Stmt stmt, String sink, int index, Weight w, int calleeID) {
         Value var = getParameter(stmt, index);
         if (var instanceof Local l)
-            ptset.genSink(sink, w, l);
+            ptset.genSink(sink, w, l, calleeID);
     }
     public void handleReturn(Local retVar) {
         ptset.genReturn(retVar);
@@ -85,12 +89,16 @@ public class SpMethod {
         return sootMethod;
     }
     public String toString() {
-        return sootMethod.toString();
+        return String.format("%s@%d", sootMethod, id);
+//        return String.format("%s@%d %s(%s)", sootMethod, id, caller.name, caller.paramTypes);
     }
     public ObjManager getManager() {
         return manager;
     }
     public Summary getSummary() {
         return summary;
+    }
+    public int getId() {
+        return id;
     }
 }

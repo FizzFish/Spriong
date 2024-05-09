@@ -90,21 +90,26 @@ public class SootWorld {
         }
         return false;
     }
+    private Map<SootMethod, Integer> calleeMap = new HashMap<>();
+    private int calleeID = 0;
+    public int getCalleeID(SootMethod callee) {
+        return calleeMap.computeIfAbsent(callee, k -> calleeID ++);
+    }
     public boolean quickCallee(SootMethod callee, SpMethod caller, Stmt stmt) {
         // 1. transition or sink not enter
-        Summary summary = getMethod(callee).getSummary();
+        Summary summary = getMethod(callee, caller).getSummary();
         if (!summary.isEmpty()) {
-            summary.apply(caller, stmt);
+            summary.apply(caller, stmt, getCalleeID(callee));
             return true;
         }
         return false;
     }
 
-    public void visitMethod(SootMethod method) {
+    public void visitMethod(SootMethod method, SpMethod caller) {
         if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
             return;
         visited.add(method);
-        SpMethod spMethod = new SpMethod(method);
+        SpMethod spMethod = new SpMethod(method, getCalleeID(method), caller);
         methodMap.put(method, spMethod);
         StmtVisitor visitor = new StmtVisitor(spMethod);
         for (Unit unit : method.getActiveBody().getUnits()) {
@@ -112,9 +117,7 @@ public class SootWorld {
         }
         spMethod.getSummary().print(true);
     }
-    public SpMethod getMethod(SootMethod method) {
-        if (methodMap.containsKey(method))
-            return methodMap.get(method);
-        return new SpMethod(method);
+    public SpMethod getMethod(SootMethod method, SpMethod caller) {
+        return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));
     }
 }

@@ -12,7 +12,7 @@ import java.util.Set;
 public class Summary {
     private SpMethod container;
     private Map<String, Set<Weight>> transitionMap = new HashMap<>();
-    private Map<String, Set<Weight>> sinkMap = new HashMap<>();
+    private Map<String, Set<SinkTrans>> sinkMap = new HashMap<>();
     public Summary(SpMethod container) {
         this.container = container;
     }
@@ -20,11 +20,12 @@ public class Summary {
         String key = String.format("%d,%d", from, to);
         transitionMap.computeIfAbsent(key, k -> new HashSet<>()).add(w);
     }
-    public void addSink(int index, Weight weight, String sink) {
+    public void addSink(String sink, int index, Weight weight, int calleeID) {
         String key = String.format("%s,%d", sink, index);
-        sinkMap.computeIfAbsent(key, k -> new HashSet<>()).add(weight);
+        SinkTrans st = new SinkTrans(sink, index, weight, calleeID);
+        sinkMap.computeIfAbsent(key, k -> new HashSet<>()).add(st);
     }
-    public void apply(SpMethod method, Stmt stmt) {
+    public void apply(SpMethod method, Stmt stmt, int calleeID) {
         transitionMap.forEach((key, values) -> {
             String[] split = key.split(",");
             int from = Integer.parseInt(split[0]);
@@ -34,10 +35,8 @@ public class Summary {
             }
         });
         sinkMap.forEach((key, values) -> {
-            String[] split = key.split(",");
-            int index = Integer.parseInt(split[1]);
-            for (Weight value : values) {
-                method.handleSink(stmt, split[0], index, value);
+            for (SinkTrans value : values) {
+                value.apply(method, stmt, calleeID);
             }
         });
     }

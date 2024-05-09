@@ -15,7 +15,7 @@ public class Main {
         sootWorld.readConfig(args[0]);
         sootWorld.initSoot(args[1]);
         SootMethod entryMethod = sootWorld.getEntryMethod();
-        sootWorld.visitMethod(entryMethod);
+        sootWorld.visitMethod(entryMethod, null);
 //        for (SootMethod v : sootWorld.getVisited())
 //            System.out.println(v.getSignature());
     }
