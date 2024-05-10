@@ -91,9 +91,10 @@ public class PointerToSet {
         varFields(var, weight.getFromFields()).stream().
                 flatMap(Pointer::formatObjs)
                 .forEach(o -> {
-                    if (canHoldString(o.type)) {
+                    int i = o.getIndex();
+                    if (canHoldString(o.type) && i != -1) {
                         Weight w = new Weight(o.getFields());
-                        container.getSummary().addSink(sink, o.getIndex(), w, calleeID);
+                        container.getSummary().addSink(sink, i, w, calleeID);
                     }
                 });
     }

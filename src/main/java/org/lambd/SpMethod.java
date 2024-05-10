@@ -101,4 +101,7 @@ public class SpMethod {
     public int getId() {
         return id;
     }
+    public SpMethod getCaller() {
+        return caller;
+    }
 }

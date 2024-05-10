@@ -23,6 +23,9 @@ transfers:
   - method: '<java.lang.String: java.lang.String substring(int)>'
     transitions:
       - { from: -1, to: -2, kind: 0 }
+  - method: '<java.lang.StringBuilder: java.lang.String substring(int,int)>'
+    transitions:
+      - { from: -1, to: -2, kind: 0 }
   - method: '<java.lang.String: void getChars(int,int,char[],int)>'
     transitions:
       - {from: -1, to: 2, kind: 1}
@@ -36,9 +39,10 @@ transfers:
     transitions:
       - {from: 0, to: -2, kind: 1}
       - {from: 0, to: -1, kind: 1}
-#  - method: '<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.CharSequence)>'
-#    transitions:
-#      - { from: 0, to: -2, kind: 1 }
+  - method: '<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.CharSequence)>'
+    transitions:
+      - { from: 0, to: -2, kind: 1 }
+      - {from: 0, to: -1, kind: 1}
   - method: '<java.lang.String: java.lang.String[] split(java.lang.String)>'
     transitions:
       - {from: -1, to: -2, kind: 1}

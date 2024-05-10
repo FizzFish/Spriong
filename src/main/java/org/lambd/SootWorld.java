@@ -104,13 +104,24 @@ public class SootWorld {
         }
         return false;
     }
+    private void debug(SpMethod caller) {
+        SpMethod sm = caller;
+        List<String> li = new ArrayList<>();
+        while(!sm.name.equals("replace")) {
+            li.add(String.format("%s: %s", sm.getSootMethod().getDeclaringClass(), sm.getName()));
+            sm = sm.getCaller();
+        }
+        System.out.println(String.join("\n -> ", li));
+    }
 
     public void visitMethod(SootMethod method, SpMethod caller) {
         if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
             return;
         visited.add(method);
-        SpMethod spMethod = new SpMethod(method, getCalleeID(method), caller);
-        methodMap.put(method, spMethod);
+        SpMethod spMethod = getMethod(method, caller);
+//        if (method.getName().equals("format") && method.getDeclaringClass().getShortName().equals("MessagePatternConverter")) {
+//            debug(spMethod);
+//        }
         StmtVisitor visitor = new StmtVisitor(spMethod);
         for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);

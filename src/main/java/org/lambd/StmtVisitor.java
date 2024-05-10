@@ -46,7 +46,7 @@ public class StmtVisitor {
     private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
         String signature = invoke.getMethodRef().getSignature();
         boolean isSystemCallee = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
-        if (signature.contains("getConnection"))
+        if (signature.contains("getConnection") || signature.contains("getDefaultManager") || signature.contains("close"))
             return;
         SootWorld world = SootWorld.v();
         if (!world.quickMethodRef(signature, methodContext, stmt)) {
@@ -54,6 +54,8 @@ public class StmtVisitor {
                 return;
             Set<SootMethod> callees = getCallee(stmt, invoke);
             for (SootMethod callee : callees) {
+                if (callee.getDeclaringClass().hasOuterClass() && !callee.getDeclaringClass().getOuterClass().getShortName().equals("PatternLayout"))
+                    continue;
                 if (world.getVisited().contains(callee)) {
                     if (methodContext.getSootMethod() != callee)
                         world.quickCallee(callee, methodContext, stmt);
