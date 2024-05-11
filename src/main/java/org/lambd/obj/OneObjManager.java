@@ -20,9 +20,15 @@ public class OneObjManager implements ObjManager {
 
     @Override
     public void copy(Local from, Local to) {
+        // to = from
         VarPointer fromPointer = ptset.getVarPointer(from);
-        VarPointer toPointer = ptset.getVarPointer(to);
-        ptset.copy(fromPointer, toPointer);
+        if (from.getName().startsWith("$") && to.getName().equals("workingBuilder")) // workingBuilder = $stack51;
+            // merge to with from
+            ptset.getSameVP(from, to);
+        else {
+            VarPointer toPointer = ptset.getVarPointer(to);
+            ptset.copy(fromPointer, toPointer);
+        }
     }
     public void loadField(Local to, Local base, SootField field) {
         // x = y.f

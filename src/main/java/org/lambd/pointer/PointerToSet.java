@@ -108,6 +108,11 @@ public class PointerToSet {
         return vars.computeIfAbsent(var,
                 f -> new VarPointer(var));
     }
+    public void getSameVP(Local from, Local to) {
+        if (vars.containsKey(from)) {
+            vars.put(to, vars.get(from));
+        }
+    }
     public InstanceField getInstanceField(Obj base, String field) {
         if (fields.contains(base, field))
             return fields.get(base, field);
