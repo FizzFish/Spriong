@@ -61,9 +61,11 @@ public class PointerToSet {
             if (weight.isUpdate()) {
                 toPointer.formatObjs().forEach(tfObj -> {
                     objs.stream().filter(Obj::isFormat).map(obj -> (FormatObj) obj).forEach(ffObj -> {
-                        Weight w = new Weight(ffObj.getFields(), tfObj.getFields());
-                        w.setUpdate();
-                        container.getSummary().addTransition(ffObj.getIndex(), tfObj.getIndex(), w);
+                        if (ffObj.getIndex() != tfObj.getIndex()) {
+                            Weight w = new Weight(ffObj.getFields(), tfObj.getFields());
+                            w.setUpdate();
+                            container.getSummary().addTransition(ffObj.getIndex(), tfObj.getIndex(), w);
+                        }
                     });
                 });
             }
