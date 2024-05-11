@@ -1,6 +1,7 @@
 package org.lambd;
 
 import org.lambd.obj.NewObj;
+import org.lambd.obj.Obj;
 import org.lambd.obj.ObjManager;
 import org.lambd.transition.Weight;
 import soot.*;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StmtVisitor {
     private SpMethod methodContext;
@@ -52,7 +54,16 @@ public class StmtVisitor {
         if (!world.quickMethodRef(signature, methodContext, stmt)) {
             if (isSystemCallee)
                 return;
-            Set<SootMethod> callees = getCallee(stmt, invoke);
+            Set<SootMethod> callees;
+            if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
+                Local base = (Local) instanceInvokeExpr.getBase();
+//                methodContext.cg.resolve(invoke, cls);
+                Set<Type> types = methodContext.getPtset().getVarPointer(base)
+                        .getObjs().stream().map(Obj::getType).collect(Collectors.toSet());
+                callees = getCallee(stmt, types);
+            } else {
+                callees = getCallee(stmt, null);
+            }
             for (SootMethod callee : callees) {
                 if (callee.getDeclaringClass().hasOuterClass() && !callee.getDeclaringClass().getOuterClass().getShortName().equals("PatternLayout"))
                     continue;
@@ -120,21 +131,18 @@ public class StmtVisitor {
             System.out.println("unsupported assignment lhs: " + stmt);
         }
     }
-    private Set<SootMethod> getCallee(Unit unit, InvokeExpr invoke) {
+    private Set<SootMethod> getCallee(Unit unit, Set<Type> types) {
         Hierarchy hierarchy = Scene.v().getActiveHierarchy();
         CallGraph cg = Scene.v().getCallGraph();
         Set<SootMethod> methods = new HashSet();
         for (Iterator<Edge> it = cg.edgesOutOf(unit); it.hasNext();) {
             Edge edge = it.next();
             SootMethod sootMethod = edge.getTgt().method();
-//            if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
-//                RefType baseType = (RefType) instanceInvokeExpr.getBase().getType();
-//
-//                SootClass declaringClass = sootMethod.getDeclaringClass();
-//                SootClass baseClass = baseType.getSootClass();
-//                if (!hierarchy.isClassSubclassOfIncluding(declaringClass, baseClass))
-//                    continue;
-//            }
+            if (types != null) {
+                Type type = sootMethod.getDeclaringClass().getType();
+                if (!types.contains(type))
+                    continue;
+            }
             methods.add(sootMethod);
         }
 

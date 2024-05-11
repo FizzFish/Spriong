@@ -19,6 +19,7 @@ public class SpMethod {
     private PointerToSet ptset;
     private int id = 0;
     private SpMethod caller;
+    public SpCallGraph cg;
     public SpMethod(SootMethod sootMethod, int id, SpMethod caller) {
         this.id = id;
         this.caller = caller;
@@ -29,6 +30,7 @@ public class SpMethod {
         summary = new Summary(this);
         ptset = new PointerToSet(this);
         manager = new OneObjManager(this, ptset);
+        cg = new SpCallGraph();
     }
 
     private Value getParameter(Stmt stmt, int i) {
@@ -98,10 +100,10 @@ public class SpMethod {
     public Summary getSummary() {
         return summary;
     }
-    public int getId() {
-        return id;
-    }
     public SpMethod getCaller() {
         return caller;
+    }
+    public PointerToSet getPtset() {
+        return ptset;
     }
 }
