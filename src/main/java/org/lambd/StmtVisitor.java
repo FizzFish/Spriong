@@ -106,7 +106,7 @@ public class StmtVisitor {
             // x.f = y
             if (fieldRef instanceof InstanceFieldRef instanceFieldRef) {
                 if (rhs instanceof Local rvar)
-                    objManager.storeField((Local) instanceFieldRef.getBase(), instanceFieldRef.getField(), rvar);
+                    objManager.storeField((Local) instanceFieldRef.getBase(), instanceFieldRef.getField(), rvar, stmt);
             } else {
                 // c.f = y
                 if (rhs instanceof Local rvar)
@@ -115,7 +115,7 @@ public class StmtVisitor {
         } else if (lhs instanceof ArrayRef arrayRef) {
             // x[i] = y
             if (rhs instanceof Local rvar)
-                objManager.storeArray((Local) arrayRef.getBase(), rvar);
+                objManager.storeArray((Local) arrayRef.getBase(), rvar, stmt);
         } else {
             System.out.println("unsupported assignment lhs: " + stmt);
         }
@@ -147,7 +147,7 @@ public class StmtVisitor {
     public void visit(ReturnStmt stmt) {
         Value retVal = stmt.getOp();
         if (retVal instanceof Local local) {
-            methodContext.handleReturn(local);
+            methodContext.handleReturn(local, stmt);
         }
     }
 }

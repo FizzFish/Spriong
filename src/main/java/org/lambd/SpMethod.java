@@ -63,7 +63,7 @@ public class SpMethod {
         if (fromVar == toVar)
             return;
         if (fromVar instanceof Local l1 && toVar instanceof Local l2)
-            ptset.update(l1, l2, w);
+            ptset.update(l1, l2, w, stmt);
     }
 
     /**
@@ -78,8 +78,8 @@ public class SpMethod {
         if (var instanceof Local l)
             ptset.genSink(sink, w, l, calleeID);
     }
-    public void handleReturn(Local retVar) {
-        ptset.genReturn(retVar);
+    public void handleReturn(Local retVar, Stmt stmt) {
+        ptset.genReturn(retVar, stmt);
     }
 
     public String getName() {

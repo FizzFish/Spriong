@@ -126,7 +126,7 @@ public class SootWorld {
         for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);
         }
-        spMethod.getSummary().print(true);
+        spMethod.getSummary().print(false);
     }
     public SpMethod getMethod(SootMethod method, SpMethod caller) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));

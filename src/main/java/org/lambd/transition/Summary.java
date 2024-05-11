@@ -11,14 +11,15 @@ import java.util.Set;
 
 public class Summary {
     private SpMethod container;
-    private Map<String, Set<Weight>> transitionMap = new HashMap<>();
+    private Map<String, Set<ArgTrans>> transitionMap = new HashMap<>();
     private Map<String, Set<SinkTrans>> sinkMap = new HashMap<>();
     public Summary(SpMethod container) {
         this.container = container;
     }
-    public void addTransition(int from, int to, Weight w) {
+    public void addTransition(int from, int to, Weight w, Stmt stmt) {
         String key = String.format("%d,%d", from, to);
-        transitionMap.computeIfAbsent(key, k -> new HashSet<>()).add(w);
+        ArgTrans at = new ArgTrans(from, to, w, stmt);
+        transitionMap.computeIfAbsent(key, k -> new HashSet<>()).add(at);
     }
     public void addSink(String sink, int index, Weight weight, int calleeID) {
         String key = String.format("%s,%d", sink, index);
@@ -30,8 +31,8 @@ public class Summary {
             String[] split = key.split(",");
             int from = Integer.parseInt(split[0]);
             int to = Integer.parseInt(split[1]);
-            for (Weight value : values) {
-                method.handleTransition(stmt, from, to, value);
+            for (ArgTrans value : values) {
+                value.apply(method, stmt);
             }
         });
         sinkMap.forEach((key, values) -> {
@@ -44,7 +45,7 @@ public class Summary {
         return transitionMap.isEmpty() && sinkMap.isEmpty();
     }
     public void print(boolean simple) {
-        if (!simple) {
+        if (!simple ) {
             if (!transitionMap.isEmpty() || !sinkMap.isEmpty()) {
                 System.out.println(container + ": ");
                 transitionMap.forEach((key, values) -> {

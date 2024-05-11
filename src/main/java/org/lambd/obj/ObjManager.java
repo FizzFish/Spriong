@@ -5,6 +5,7 @@ import soot.Local;
 import soot.SootField;
 import soot.SootMethod;
 import soot.Type;
+import soot.jimple.Stmt;
 
 public interface ObjManager {
     void copy(Local from, Local to);
@@ -13,13 +14,13 @@ public interface ObjManager {
     // x = C.f
     void loadStaticField(Local to, Class clazz, SootField field);
     // x.f = y
-    void storeField(Local base, SootField field, Local from);
+    void storeField(Local base, SootField field, Local from, Stmt stmt);
     // C.f = y
     void storeStaticField(Class clazz, SootField field, Local from);
     // x = y[i]
     void loadArray(Local to, Local base);
     // x[i] = y
-    void storeArray(Local base, Local from);
+    void storeArray(Local base, Local from, Stmt stmt);
 
     void handleNew(Local var, Type type);
 }

@@ -7,6 +7,7 @@ import org.lambd.utils.Utils;
 import soot.Local;
 import soot.SootField;
 import soot.Type;
+import soot.jimple.Stmt;
 
 public class OneObjManager implements ObjManager {
     private final SpMethod container;
@@ -46,14 +47,14 @@ public class OneObjManager implements ObjManager {
         ptset.copy(fromPointer, toPointer);
     }
 
-    public void storeField(Local base, SootField field, Local from) {
+    public void storeField(Local base, SootField field, Local from, Stmt stmt) {
         // x.f = y -> w(y,x) = 1/f
         // analysis alias
         VarPointer fromPointer = ptset.getVarPointer(from);
         ptset.getLocalObjs(base).forEach(obj -> {
             InstanceField toPointer = ptset.getInstanceField(obj, field.getName());
             if (obj instanceof FormatObj formatObj)
-                ptset.storeAlias(fromPointer, formatObj, field.getName());
+                ptset.storeAlias(fromPointer, formatObj, field.getName(), stmt);
             ptset.copy(fromPointer, toPointer);
         });
     }
@@ -72,12 +73,12 @@ public class OneObjManager implements ObjManager {
             ptset.copy(fromPointer, toPointer);
         });
     }
-    public void storeArray(Local base, Local from) {
+    public void storeArray(Local base, Local from, Stmt stmt) {
         // x[i] = y
         ptset.getLocalObjs(base).forEach(obj -> {
             VarPointer fromPointer = ptset.getVarPointer(from);
             if (obj instanceof FormatObj formatObj)
-                ptset.storeAlias(fromPointer, formatObj, Utils.arrayStr);
+                ptset.storeAlias(fromPointer, formatObj, Utils.arrayStr, stmt);
             InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayStr);
             ptset.copy(fromPointer, toPointer);
         });

@@ -7,6 +7,7 @@ import org.lambd.obj.GenObj;
 import org.lambd.obj.Obj;
 import org.lambd.transition.Weight;
 import soot.*;
+import soot.jimple.Stmt;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -48,7 +49,7 @@ public class PointerToSet {
             return;
         to.addAll(from.getObjs());
     }
-    public void update(Local from, Local to, Weight weight) {
+    public void update(Local from, Local to, Weight weight, Stmt stmt) {
         // to.w2 = from.w1
         Set<Pointer> fields = varFields(from, weight.getFromFields());
         if (fields.isEmpty())
@@ -64,7 +65,7 @@ public class PointerToSet {
                         if (ffObj.getIndex() != tfObj.getIndex()) {
                             Weight w = new Weight(ffObj.getFields(), tfObj.getFields());
                             w.setUpdate();
-                            container.getSummary().addTransition(ffObj.getIndex(), tfObj.getIndex(), w);
+                            container.getSummary().addTransition(ffObj.getIndex(), tfObj.getIndex(), w, stmt);
                         }
                     });
                 });
@@ -74,7 +75,7 @@ public class PointerToSet {
 
 
     }
-    public void storeAlias(VarPointer from, FormatObj base, String field) {
+    public void storeAlias(VarPointer from, FormatObj base, String field, Stmt stmt) {
         // x.f = y
         from.getObjs().forEach(f -> {
             if (f instanceof FormatObj fObj) {
@@ -82,7 +83,7 @@ public class PointerToSet {
                     String toStr = base.getFields().isEmpty() ? field : String.format("%s.%s", base.getFields(), field);
                     Weight w = new Weight(fObj.getFields(), toStr);
                     w.setUpdate();
-                    container.getSummary().addTransition(fObj.getIndex(), base.getIndex(), w);
+                    container.getSummary().addTransition(fObj.getIndex(), base.getIndex(), w, stmt);
                 }
             }
         });
@@ -166,11 +167,11 @@ public class PointerToSet {
         return getVarPointer(var).getObjs();
     }
 
-    public void genReturn(Local retVar) {
+    public void genReturn(Local retVar, Stmt stmt) {
         getVarPointer(retVar).getObjs().forEach(obj -> {
             if (obj instanceof FormatObj fobj) {
                 Weight w = new Weight(fobj.getFields());
-                container.getSummary().addTransition(fobj.getIndex(), -2, w);
+                container.getSummary().addTransition(fobj.getIndex(), -2, w, stmt);
             }
         });
     }
