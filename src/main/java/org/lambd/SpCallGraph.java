@@ -31,17 +31,14 @@ public class SpCallGraph {
     private HashBasedTable<SootClass, NumberedString, SootMethod> dispatchTable = HashBasedTable.create();
     public SootMethod resolve(InvokeExpr invoke, SootClass cls) {
         SootMethodRef subsignature = invoke.getMethodRef();
-        if (invoke instanceof StaticInvokeExpr sie)
+        if (cls == null)
             return subsignature.resolve();
-        if (invoke instanceof InstanceInvokeExpr iie)
-            return dispatch(cls, subsignature);
-        return null;
+        return dispatch(cls, subsignature);
     }
     public SootMethod dispatch(SootClass receiverClass, SootMethodRef methodRef) {
         // check the subclass relation between the receiver class and
         // the class of method reference to avoid the unexpected method found
         Hierarchy hierarchy = Scene.v().getActiveHierarchy();
-
         if (!hierarchy.isClassSubclassOfIncluding(receiverClass, methodRef.getDeclaringClass()))
             return null;
         NumberedString subsignature = methodRef.getSubSignature();

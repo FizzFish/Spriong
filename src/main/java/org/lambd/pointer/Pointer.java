@@ -29,4 +29,7 @@ public abstract class Pointer {
     public void addAll(Set<Obj> objs) {
         this.objs.addAll(objs);
     }
+    public boolean isEmpty() {
+        return objs.isEmpty();
+    }
 }

@@ -106,4 +106,7 @@ public class SpMethod {
     public PointerToSet getPtset() {
         return ptset;
     }
+    public SpCallGraph getCg() {
+        return cg;
+    }
 }

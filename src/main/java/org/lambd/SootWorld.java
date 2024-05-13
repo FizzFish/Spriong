@@ -119,14 +119,11 @@ public class SootWorld {
             return;
         visited.add(method);
         SpMethod spMethod = getMethod(method, caller);
-//        if (method.getName().equals("format") && method.getDeclaringClass().getShortName().equals("MessagePatternConverter")) {
-//            debug(spMethod);
-//        }
         StmtVisitor visitor = new StmtVisitor(spMethod);
         for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);
         }
-        spMethod.getSummary().print(false);
+        spMethod.getSummary().print(true);
     }
     public SpMethod getMethod(SootMethod method, SpMethod caller) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));

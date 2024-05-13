@@ -111,6 +111,12 @@ public class PointerToSet {
         return vars.computeIfAbsent(var,
                 f -> new VarPointer(var));
     }
+    public boolean hasAbstractObj(VarPointer vp) {
+        for (Obj obj : vp.getObjs())
+            if (obj instanceof FormatObj fo && fo.getType() instanceof RefType rt && rt.getSootClass().isAbstract())
+                    return true;
+        return false;
+    }
     public void getSameVP(Local from, Local to) {
         if (vars.containsKey(from)) {
             vars.put(to, vars.get(from));

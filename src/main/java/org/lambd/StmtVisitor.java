@@ -1,9 +1,8 @@
 package org.lambd;
 
-import org.lambd.obj.NewObj;
 import org.lambd.obj.Obj;
 import org.lambd.obj.ObjManager;
-import org.lambd.transition.Weight;
+import org.lambd.pointer.VarPointer;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -11,14 +10,13 @@ import soot.jimple.toolkits.callgraph.Edge;
 
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class StmtVisitor {
-    private SpMethod methodContext;
+    private SpMethod container;
     public StmtVisitor(SpMethod method) {
-        this.methodContext = method;
+        this.container = method;
     }
     public void visit(Stmt stmt) {
         if (stmt instanceof IdentityStmt) {
@@ -51,34 +49,50 @@ public class StmtVisitor {
         if (signature.contains("getConnection") || signature.contains("getDefaultManager") || signature.contains("close"))
             return;
         SootWorld world = SootWorld.v();
-        if (!world.quickMethodRef(signature, methodContext, stmt)) {
+        if (!world.quickMethodRef(signature, container, stmt)) {
             if (isSystemCallee)
                 return;
-            Set<SootMethod> callees;
+            SpCallGraph cg = container.getCg();
+            // there are a lot of compromises here
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
                 Local base = (Local) instanceInvokeExpr.getBase();
-//                methodContext.cg.resolve(invoke, cls);
-                Set<Type> types = methodContext.getPtset().getVarPointer(base)
-                        .getObjs().stream().map(Obj::getType).collect(Collectors.toSet());
-                callees = getCallee(stmt, types);
-            } else {
-                callees = getCallee(stmt, null);
-            }
-            for (SootMethod callee : callees) {
-                if (callee.getDeclaringClass().hasOuterClass() && !callee.getDeclaringClass().getOuterClass().getShortName().equals("PatternLayout"))
-                    continue;
-                if (world.getVisited().contains(callee)) {
-                    if (methodContext.getSootMethod() != callee)
-                        world.quickCallee(callee, methodContext, stmt);
-                } else {
-                    SootWorld.v().visitMethod(callee, methodContext);
-                    world.quickCallee(callee, methodContext, stmt);
+                VarPointer vp = container.getPtset().getVarPointer(base);
+                if (instanceInvokeExpr instanceof InterfaceInvokeExpr
+                        || vp.isEmpty()
+                        || container.getPtset().hasAbstractObj(vp)) {
+                    getCallee(stmt).forEach(callee -> {
+                        apply(callee, stmt);
+                    });
+                } else if (instanceInvokeExpr instanceof VirtualInvokeExpr) {
+                    vp.getObjs().forEach(obj -> {
+                        if (obj.getType() instanceof RefType rt) {
+                            SootMethod callee = cg.resolve(invoke, rt.getSootClass());
+                            if (callee == null)
+                                return;
+                            apply(callee, stmt);
+                        }
+                    });
+                } else if (invoke instanceof SpecialInvokeExpr) {
+                    SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
+                    apply(callee, stmt);
                 }
+            } else {
+                SootMethod callee = cg.resolve(invoke, null);
+                apply(callee, stmt);
             }
         }
     }
-    private boolean isSystemCallee(String signature) {
-        return signature.contains("java.lang.System");
+    private void apply(SootMethod callee, Stmt stmt) {
+        if (callee.getDeclaringClass().hasOuterClass() && !callee.getDeclaringClass().getOuterClass().getShortName().equals("PatternLayout"))
+            return;
+        SootWorld world = SootWorld.v();
+        if (world.getVisited().contains(callee)) {
+            if (container.getSootMethod() != callee)
+                world.quickCallee(callee, container, stmt);
+        } else {
+            world.visitMethod(callee, container);
+            world.quickCallee(callee, container, stmt);
+        }
     }
     public void visit(AssignStmt stmt) {
         Value lhs = stmt.getLeftOp();
@@ -87,7 +101,7 @@ public class StmtVisitor {
             handleInvoke(stmt, invoke);
             return;
         }
-        ObjManager objManager = methodContext.getManager();
+        ObjManager objManager = container.getManager();
         if (lhs instanceof Local lvar) {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
@@ -131,18 +145,18 @@ public class StmtVisitor {
             System.out.println("unsupported assignment lhs: " + stmt);
         }
     }
-    private Set<SootMethod> getCallee(Unit unit, Set<Type> types) {
+    private Set<SootMethod> getCallee(Unit unit) {
         Hierarchy hierarchy = Scene.v().getActiveHierarchy();
         CallGraph cg = Scene.v().getCallGraph();
         Set<SootMethod> methods = new HashSet();
         for (Iterator<Edge> it = cg.edgesOutOf(unit); it.hasNext();) {
             Edge edge = it.next();
             SootMethod sootMethod = edge.getTgt().method();
-            if (types != null) {
-                Type type = sootMethod.getDeclaringClass().getType();
-                if (!types.contains(type))
-                    continue;
-            }
+//            if (types != null) {
+//                Type type = sootMethod.getDeclaringClass().getType();
+//                if (!types.contains(type))
+//                    continue;
+//            }
             methods.add(sootMethod);
         }
 
@@ -155,7 +169,7 @@ public class StmtVisitor {
     public void visit(ReturnStmt stmt) {
         Value retVal = stmt.getOp();
         if (retVal instanceof Local local) {
-            methodContext.handleReturn(local, stmt);
+            container.handleReturn(local, stmt);
         }
     }
 }
