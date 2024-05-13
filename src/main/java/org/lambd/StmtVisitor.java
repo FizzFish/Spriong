@@ -121,6 +121,8 @@ public class StmtVisitor {
             } else if (rhs instanceof UnopExpr) {
             } else if (rhs instanceof InstanceOfExpr) {
             } else if (rhs instanceof CastExpr castExpr) {
+                // StmpManager::add: ((Log4jLogEvent)event).makeMessageImmutable();
+                // maybe need turn obj type
                 Value op = castExpr.getOp();
                 if (op instanceof Local local)
                     objManager.copy(local, lvar);
@@ -169,7 +171,7 @@ public class StmtVisitor {
     public void visit(ReturnStmt stmt) {
         Value retVal = stmt.getOp();
         if (retVal instanceof Local local) {
-            container.handleReturn(local, stmt);
+            container.getPtset().genReturn(local, stmt);
         }
     }
 }

@@ -113,6 +113,11 @@ public class SootWorld {
         }
         System.out.println(String.join("\n -> ", li));
     }
+    private boolean check(SootMethod method, String name, String cls) {
+        if (method.getName().equals(name) && method.getDeclaringClass().getShortName().equals(cls))
+            return true;
+        return false;
+    }
 
     public void visitMethod(SootMethod method, SpMethod caller) {
         if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
@@ -123,7 +128,12 @@ public class SootWorld {
         for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);
         }
-        spMethod.getSummary().print(true);
+        if (check(method, "createEvent", "ReusableLogEventFactory")
+                || check(method, "formatTo", "ReusableSimpleMessage")
+                || check(method, "setMessage", "MutableLogEvent"))
+            spMethod.getSummary().print(false);
+        else
+            spMethod.getSummary().print(true);
     }
     public SpMethod getMethod(SootMethod method, SpMethod caller) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));

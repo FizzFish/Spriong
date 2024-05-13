@@ -23,7 +23,8 @@ public class ArgTrans implements Transition {
     }
 
     public String toString() {
-        return String.format("%s.%s = %s", Utils.argString(to), weight, Utils.argString(from));
+        return String.format("%s.%s = %s.%s", Utils.argString(to), Utils.fieldString(weight.getToFields()),
+                Utils.argString(from), Utils.fieldString(weight.getFromFields()));
     }
     public int hashCode() {
         return Objects.hash(from, to);

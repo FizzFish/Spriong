@@ -5,7 +5,4 @@ import soot.jimple.Stmt;
 
 public interface Transition {
     void apply(SpMethod method, Stmt stmt);
-    default boolean debugTrans() {
-        return false;
-    }
 }

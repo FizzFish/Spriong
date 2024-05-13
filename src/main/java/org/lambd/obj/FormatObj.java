@@ -18,7 +18,9 @@ public class FormatObj extends Obj {
     protected String fields = "";
     private static final Map<String, String> map = Map.of("org.apache.logging.log4j.core.LogEvent", "org.apache.logging.log4j.core.impl.MutableLogEvent",
             "org.apache.logging.log4j.spi.AbstractLogger", "org.apache.logging.log4j.core.Logger",
-            "org.apache.logging.log4j.core.pattern.LogEventPatternConverter", "org.apache.logging.log4j.core.pattern.MessagePatternConverter");
+            "org.apache.logging.log4j.core.pattern.LogEventPatternConverter", "org.apache.logging.log4j.core.pattern.MessagePatternConverter",
+            "org.apache.logging.log4j.message.ReusableMessage", "org.apache.logging.log4j.message.ReusableSimpleMessage",
+            "org.apache.logging.log4j.message.Message", "org.apache.logging.log4j.message.ReusableSimpleMessage");
 
     public FormatObj(Type type, SpMethod method, int index)
     {

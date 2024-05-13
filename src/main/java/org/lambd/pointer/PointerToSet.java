@@ -5,7 +5,9 @@ import org.lambd.SpMethod;
 import org.lambd.obj.FormatObj;
 import org.lambd.obj.GenObj;
 import org.lambd.obj.Obj;
+import org.lambd.transition.Summary;
 import org.lambd.transition.Weight;
+import org.lambd.utils.Utils;
 import soot.*;
 import soot.jimple.Stmt;
 
@@ -72,8 +74,6 @@ public class PointerToSet {
             }
             toPointer.addAll(objs);
         });
-
-
     }
     public void storeAlias(VarPointer from, FormatObj base, String field, Stmt stmt) {
         // x.f = y
@@ -101,9 +101,15 @@ public class PointerToSet {
                     }
                 });
     }
+    public void updateLhs(Local lhs, RefType type) {
+        Obj obj = new Obj(type, container);
+        getVarPointer(lhs).add(obj);
+    }
     private boolean canHoldString(Type type) {
         String typeStr = type.toString();
-        if (typeStr.equals("java.lang.String") || typeStr.equals("java.lang.StringBuilder") || typeStr.equals("char[]"))
+        if (typeStr.equals("java.lang.String") || typeStr.equals("java.lang.StringBuilder")
+                || typeStr.equals("java.lang.CharSequence")
+                || typeStr.equals("char[]"))
             return true;
         return false;
     }
@@ -174,11 +180,23 @@ public class PointerToSet {
     }
 
     public void genReturn(Local retVar, Stmt stmt) {
+        Summary summary = container.getSummary();
         getVarPointer(retVar).getObjs().forEach(obj -> {
             if (obj instanceof FormatObj fobj) {
                 Weight w = new Weight(fobj.getFields());
-                container.getSummary().addTransition(fobj.getIndex(), -2, w, stmt);
+                summary.addTransition(fobj.getIndex(), -2, w, stmt);
+            } else if (obj.getType() instanceof RefType rt){
+                summary.addReturn(rt);
             }
+            fields.row(obj).forEach((field, ifield) -> {
+                ifield.getObjs().forEach(o -> {
+                    if (o instanceof FormatObj fobj) {
+                        // ret.field = fobj
+                        Weight w = new Weight(fobj.getFields(), field);
+                        container.getSummary().addTransition(fobj.getIndex(), -2, w, stmt);
+                    }
+                });
+            });
         });
     }
 }

@@ -80,10 +80,11 @@ public class SpMethod {
         if (var instanceof Local l)
             ptset.genSink(sink, w, l, calleeID);
     }
-    public void handleReturn(Local retVar, Stmt stmt) {
-        ptset.genReturn(retVar, stmt);
+    public void handleReturn(Stmt stmt, RefType type) {
+        Value lhs = getParameter(stmt, -2);
+        if (lhs instanceof Local l)
+            ptset.updateLhs(l, type);
     }
-
     public String getName() {
         return name;
     }

@@ -2,6 +2,7 @@ package org.lambd.transition;
 
 import org.lambd.SpMethod;
 import org.lambd.utils.Pair;
+import soot.RefType;
 import soot.jimple.Stmt;
 
 import java.util.HashMap;
@@ -13,8 +14,13 @@ public class Summary {
     private SpMethod container;
     private Map<String, Set<ArgTrans>> transitionMap = new HashMap<>();
     private Map<String, Set<SinkTrans>> sinkMap = new HashMap<>();
+    private Set<RetTrans> retSet = new HashSet<>();
     public Summary(SpMethod container) {
         this.container = container;
+    }
+    public void addReturn(RefType type) {
+        RetTrans rt = new RetTrans(type);
+        retSet.add(rt);
     }
     public void addTransition(int from, int to, Weight w, Stmt stmt) {
         String key = String.format("%d,%d", from, to);
@@ -27,10 +33,10 @@ public class Summary {
         sinkMap.computeIfAbsent(key, k -> new HashSet<>()).add(st);
     }
     public void apply(SpMethod method, Stmt stmt, int calleeID) {
+        for (RetTrans rt : retSet) {
+            rt.apply(method, stmt);
+        }
         transitionMap.forEach((key, values) -> {
-            String[] split = key.split(",");
-            int from = Integer.parseInt(split[0]);
-            int to = Integer.parseInt(split[1]);
             for (ArgTrans value : values) {
                 value.apply(method, stmt);
             }

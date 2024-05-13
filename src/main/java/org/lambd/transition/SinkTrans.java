@@ -52,9 +52,4 @@ public class SinkTrans implements Transition {
     public void apply(SpMethod method, Stmt stmt, int calleeID) {
         method.handleSink(stmt, sinkDes, argIndex, weight, calleeID);
     }
-
-    @Override
-    public boolean debugTrans() {
-        return true;
-    }
 }
