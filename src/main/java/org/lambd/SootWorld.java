@@ -104,10 +104,10 @@ public class SootWorld {
         }
         return false;
     }
-    private void debug(SpMethod caller) {
+    private void debug(SpMethod caller, String until) {
         SpMethod sm = caller;
         List<String> li = new ArrayList<>();
-        while(!sm.name.equals("replace")) {
+        while(sm == null || !sm.name.equals(until)) {
             li.add(String.format("%s: %s", sm.getSootMethod().getDeclaringClass(), sm.getName()));
             sm = sm.getCaller();
         }
@@ -128,12 +128,7 @@ public class SootWorld {
         for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);
         }
-        if (check(method, "createEvent", "ReusableLogEventFactory")
-                || check(method, "formatTo", "ReusableSimpleMessage")
-                || check(method, "setMessage", "MutableLogEvent"))
-            spMethod.getSummary().print(false);
-        else
-            spMethod.getSummary().print(true);
+        spMethod.getSummary().print(true);
     }
     public SpMethod getMethod(SootMethod method, SpMethod caller) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));

@@ -46,7 +46,7 @@ public class StmtVisitor {
     private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
         String signature = invoke.getMethodRef().getSignature();
         boolean isSystemCallee = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
-        if (signature.contains("getConnection") || signature.contains("getDefaultManager") || signature.contains("close"))
+        if (signature.contains("getDefaultManager") || signature.contains("close"))
             return;
         SootWorld world = SootWorld.v();
         if (!world.quickMethodRef(signature, container, stmt)) {
@@ -57,7 +57,10 @@ public class StmtVisitor {
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
                 Local base = (Local) instanceInvokeExpr.getBase();
                 VarPointer vp = container.getPtset().getVarPointer(base);
-                if (instanceInvokeExpr instanceof InterfaceInvokeExpr
+                 if (invoke instanceof SpecialInvokeExpr) {
+                    SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
+                    apply(callee, stmt);
+                } else if (instanceInvokeExpr instanceof InterfaceInvokeExpr
                         || vp.isEmpty()
                         || container.getPtset().hasAbstractObj(vp)) {
                     getCallee(stmt).forEach(callee -> {
@@ -72,9 +75,6 @@ public class StmtVisitor {
                             apply(callee, stmt);
                         }
                     });
-                } else if (invoke instanceof SpecialInvokeExpr) {
-                    SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
-                    apply(callee, stmt);
                 }
             } else {
                 SootMethod callee = cg.resolve(invoke, null);
