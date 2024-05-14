@@ -216,4 +216,15 @@ public class PointerToSet {
                 obj.setType(type);
         });
     }
+    public int getVarSize() {
+        return vars.size();
+    }
+    public int getObjSize() {
+        int size = 0;
+        for (Pointer p : vars.values())
+            size += p.getObjs().size();
+        for (Pointer p : fields.values())
+            size += p.getObjs().size();
+        return size;
+    }
 }

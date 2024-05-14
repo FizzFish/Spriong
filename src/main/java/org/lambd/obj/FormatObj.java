@@ -14,7 +14,6 @@ import java.util.Map;
 
 public class FormatObj extends Obj {
     private int index;
-    private GenObj genObj;
     protected String fields = "";
     private static final Map<String, String> map = Map.of("org.apache.logging.log4j.core.LogEvent", "org.apache.logging.log4j.core.impl.MutableLogEvent",
             "org.apache.logging.log4j.spi.AbstractLogger", "org.apache.logging.log4j.core.Logger",
@@ -37,18 +36,6 @@ public class FormatObj extends Obj {
     public String toString() {
         return String.format("FormatObj: %s@%s", type, container.getName());
     }
-//    public List<String> getFields() {
-//        if (fields != null) {
-//            return fields;
-//        }
-//        FormatObj tmpObj = this;
-//        fields = new ArrayList<>();
-//        while (tmpObj instanceof GenObj genObj) {
-//            fields.add(genObj.getField());
-//            tmpObj = genObj.getParent();
-//        }
-//        return fields;
-//    }
     public String getFields() {
         return fields;
     }

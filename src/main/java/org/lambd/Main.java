@@ -20,7 +20,7 @@ public class Main {
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         System.out.println("Execution time: " + duration + " milliseconds");
-//        sootWorld.showCFG();
+        sootWorld.statistics();
     }
 }
 

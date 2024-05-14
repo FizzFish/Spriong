@@ -137,9 +137,13 @@ public class SootWorld {
     public SpMethod getMethod(SootMethod method, SpMethod caller) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));
     }
-    public void showCFG() {
-        visited.forEach(method -> {
-            System.out.println(methodMap.get(method));
-        });
+    public void statistics() {
+        int varSize = 0, objSize = 0;
+        for (SootMethod method : visited) {
+            varSize += methodMap.get(method).getPtset().getVarSize();
+            objSize += methodMap.get(method).getPtset().getObjSize();
+        }
+        System.out.printf("there are %d functions, %d vars, %d objs\n",
+                visited.size(), varSize, objSize);
     }
 }
