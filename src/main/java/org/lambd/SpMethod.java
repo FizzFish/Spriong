@@ -92,8 +92,7 @@ public class SpMethod {
         return sootMethod;
     }
     public String toString() {
-        return String.format("%s@%d", sootMethod, id);
-//        return String.format("%s@%d %s(%s)", sootMethod, id, caller.name, caller.paramTypes);
+        return String.format("%s@%d: %d", sootMethod, id, caller==null? -1: caller.id);
     }
     public ObjManager getManager() {
         return manager;

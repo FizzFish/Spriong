@@ -16,8 +16,7 @@ public class Main {
         sootWorld.initSoot(args[1]);
         SootMethod entryMethod = sootWorld.getEntryMethod();
         sootWorld.visitMethod(entryMethod, null);
-//        for (SootMethod v : sootWorld.getVisited())
-//            System.out.println(v.getSignature());
+//        sootWorld.show();
     }
 }
 

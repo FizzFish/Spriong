@@ -133,4 +133,9 @@ public class SootWorld {
     public SpMethod getMethod(SootMethod method, SpMethod caller) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));
     }
+    public void show() {
+        visited.forEach(method -> {
+            System.out.println(methodMap.get(method));
+        });
+    }
 }

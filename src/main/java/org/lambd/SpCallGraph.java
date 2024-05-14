@@ -99,4 +99,27 @@ public class SpCallGraph {
         }
         return null;
     }
+    public boolean isSubClass(SootClass jclass, SootClass baseClass) {
+        for (SootClass c = jclass; c != null; c = c.getSuperclass()) {
+            if (c == baseClass) {
+                return true;
+            }
+            for (SootClass iface : c.getInterfaces()) {
+                if (checkInterface(iface, baseClass))
+                    return true;
+            }
+            if (!c.hasSuperclass())
+                return false;
+        }
+        return false;
+    }
+    private boolean checkInterface(SootClass jclass, SootClass baseClass) {
+        if (jclass == baseClass)
+            return true;
+        for (SootClass iface : jclass.getInterfaces()) {
+            if (checkInterface(iface, baseClass))
+                return true;
+        }
+        return false;
+    }
 }

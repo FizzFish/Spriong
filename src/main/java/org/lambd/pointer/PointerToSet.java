@@ -1,6 +1,7 @@
 package org.lambd.pointer;
 
 import com.google.common.collect.HashBasedTable;
+import org.lambd.SpCallGraph;
 import org.lambd.SpMethod;
 import org.lambd.obj.FormatObj;
 import org.lambd.obj.GenObj;
@@ -197,6 +198,16 @@ public class PointerToSet {
                     }
                 });
             });
+        });
+    }
+
+    public void handleCast(Local lhs, Local rhs, RefType type) {
+        VarPointer vp = getVarPointer(rhs);
+        SpCallGraph cg = container.getCg();
+        vars.put(lhs, vp);
+        vp.getObjs().forEach(obj -> {
+            if (obj.getType() instanceof RefType rt && cg.isSubClass(type.getSootClass(), rt.getSootClass()))
+                obj.setType(type);
         });
     }
 }

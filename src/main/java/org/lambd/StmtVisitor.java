@@ -124,8 +124,9 @@ public class StmtVisitor {
                 // StmpManager::add: ((Log4jLogEvent)event).makeMessageImmutable();
                 // maybe need turn obj type
                 Value op = castExpr.getOp();
-                if (op instanceof Local local)
-                    objManager.copy(local, lvar);
+                if (op instanceof Local local && lvar.getType() instanceof RefType rtl) {
+                    container.getPtset().handleCast(lvar, local, rtl);
+                }
             } else {
                 System.out.println("unsupported assignment rhs: " + stmt);
             }
