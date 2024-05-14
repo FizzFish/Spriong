@@ -90,7 +90,7 @@ public class PointerToSet {
         });
 
     }
-    public void genSink(String sink, Weight weight, Local var, int calleeID) {
+    public void genSink(String sink, Weight weight, Local var, Stmt stmt) {
         // var.w => sink
         varFields(var, weight.getFromFields()).stream().
                 flatMap(Pointer::formatObjs)
@@ -98,7 +98,7 @@ public class PointerToSet {
                     int i = o.getIndex();
                     if (canHoldString(o.type) && i != -1) {
                         Weight w = new Weight(o.getFields());
-                        container.getSummary().addSink(sink, i, w, calleeID);
+                        container.getSummary().addSink(sink, i, w, stmt);
                     }
                 });
     }

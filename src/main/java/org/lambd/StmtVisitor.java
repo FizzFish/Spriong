@@ -87,6 +87,7 @@ public class StmtVisitor {
             return;
         SootWorld world = SootWorld.v();
         if (world.getVisited().contains(callee)) {
+//            world.addLiveEdge(callee, container, stmt);
             if (container.getSootMethod() != callee)
                 world.quickCallee(callee, container, stmt);
         } else {

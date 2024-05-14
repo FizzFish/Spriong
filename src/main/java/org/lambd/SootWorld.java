@@ -99,7 +99,7 @@ public class SootWorld {
         // 1. transition or sink not enter
         Summary summary = getMethod(callee, caller).getSummary();
         if (!summary.isEmpty()) {
-            summary.apply(caller, stmt, getCalleeID(callee));
+            summary.apply(caller, stmt);
             return true;
         }
         return false;
@@ -118,7 +118,10 @@ public class SootWorld {
             return true;
         return false;
     }
-
+    public void addLiveEdge(SootMethod callee, SpMethod caller, Stmt stmt) {
+        SpMethod spCallee = getMethod(callee, caller);
+        spCallee.addUpdateCaller(caller, stmt);
+    }
     public void visitMethod(SootMethod method, SpMethod caller) {
         if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
             return;
@@ -129,11 +132,12 @@ public class SootWorld {
             visitor.visit((Stmt) unit);
         }
         spMethod.getSummary().print(true);
+        spMethod.finish();
     }
     public SpMethod getMethod(SootMethod method, SpMethod caller) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));
     }
-    public void show() {
+    public void showCFG() {
         visited.forEach(method -> {
             System.out.println(methodMap.get(method));
         });

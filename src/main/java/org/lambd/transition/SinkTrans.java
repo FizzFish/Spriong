@@ -9,17 +9,17 @@ public class SinkTrans implements Transition {
     private int argIndex;
     private Weight weight;
     // method.param(index) -(fraction)-> sink
-    private int calleeID;
-    public SinkTrans(String sink, int index, Weight weight, int calleeID)
+    private Stmt born;
+    public SinkTrans(String sink, int index, Weight weight, Stmt born)
     {
         this.argIndex = index;
         this.weight = weight;
         this.sinkDes = sink;
-        this.calleeID = calleeID;
+        this.born = born;
     }
     public SinkTrans(String sink, int index, Weight weight)
     {
-        this(sink, index, weight, -1);
+        this(sink, index, weight, null);
     }
     public boolean equals(Object obj) {
         if (obj instanceof SinkTrans st)
@@ -43,13 +43,10 @@ public class SinkTrans implements Transition {
     }
     public String toString() {
 //        return String.format("<sink>: %s.%s flow to %s", Utils.argString(argIndex), weight, sinkDes);
-        return String.format("%s;%d", weight, calleeID);
+        return String.format("%s", weight);
     }
     @Override
-    public void apply(SpMethod method, Stmt stmt) {
-        method.handleSink(stmt, sinkDes, argIndex, weight, 0);
-    }
-    public void apply(SpMethod method, Stmt stmt, int calleeID) {
-        method.handleSink(stmt, sinkDes, argIndex, weight, calleeID);
+    public void apply(SpMethod caller, Stmt stmt) {
+        caller.handleSink(stmt, sinkDes, argIndex, weight);
     }
 }

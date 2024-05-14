@@ -27,12 +27,12 @@ public class Summary {
         ArgTrans at = new ArgTrans(from, to, w, stmt);
         transitionMap.computeIfAbsent(key, k -> new HashSet<>()).add(at);
     }
-    public void addSink(String sink, int index, Weight weight, int calleeID) {
+    public void addSink(String sink, int index, Weight weight, Stmt stmt) {
         String key = String.format("%s,%d", sink, index);
-        SinkTrans st = new SinkTrans(sink, index, weight, calleeID);
+        SinkTrans st = new SinkTrans(sink, index, weight, stmt);
         sinkMap.computeIfAbsent(key, k -> new HashSet<>()).add(st);
     }
-    public void apply(SpMethod method, Stmt stmt, int calleeID) {
+    public void apply(SpMethod method, Stmt stmt) {
         for (RetTrans rt : retSet) {
             rt.apply(method, stmt);
         }
@@ -43,7 +43,7 @@ public class Summary {
         });
         sinkMap.forEach((key, values) -> {
             for (SinkTrans value : values) {
-                value.apply(method, stmt, calleeID);
+                value.apply(method, stmt);
             }
         });
     }

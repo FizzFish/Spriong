@@ -11,8 +11,6 @@ import java.util.*;
 
 public class SpMethod {
     private SootMethod sootMethod;
-    private final List<Type> paramTypes;
-    private final SootClass clazz;
     public final String name;
     private Summary summary;
     private ObjManager manager;
@@ -20,17 +18,18 @@ public class SpMethod {
     private int id = 0;
     private SpMethod caller;
     public SpCallGraph cg;
+    private State state;
+    private Map<SpMethod, Stmt> updateCaller = new HashMap<>();
     public SpMethod(SootMethod sootMethod, int id, SpMethod caller) {
         this.id = id;
         this.caller = caller;
-        this.paramTypes = sootMethod.getParameterTypes();
-        this.clazz = sootMethod.getDeclaringClass();
         this.name = sootMethod.getName();
         this.sootMethod = sootMethod;
         summary = new Summary(this);
         ptset = new PointerToSet(this);
         manager = new OneObjManager(this, ptset);
         cg = new SpCallGraph();
+        state = State.VISITED;
     }
 
     private Value getParameter(Stmt stmt, int i) {
@@ -75,10 +74,10 @@ public class SpMethod {
      * @param index arg index can transfer to sink
      * @param w fields of arg can transfer to sink
      */
-    public void handleSink(Stmt stmt, String sink, int index, Weight w, int calleeID) {
+    public void handleSink(Stmt stmt, String sink, int index, Weight w) {
         Value var = getParameter(stmt, index);
         if (var instanceof Local l)
-            ptset.genSink(sink, w, l, calleeID);
+            ptset.genSink(sink, w, l, stmt);
     }
     public void handleReturn(Stmt stmt, RefType type) {
         Value lhs = getParameter(stmt, -2);
@@ -109,4 +108,18 @@ public class SpMethod {
     public SpCallGraph getCg() {
         return cg;
     }
+    public void finish() {
+        state = State.FINISHED;
+//        updateCaller.forEach((c, s) -> {
+//            summary.apply(c, s);
+//        });
+    }
+    public void addUpdateCaller(SpMethod caller, Stmt stmt) {
+        this.updateCaller.put(caller, stmt);
+    }
+}
+enum State {
+    STRANGE,
+    VISITED,
+    FINISHED,
 }
