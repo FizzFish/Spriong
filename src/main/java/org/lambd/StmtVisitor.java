@@ -2,6 +2,7 @@ package org.lambd;
 
 import org.lambd.obj.Obj;
 import org.lambd.obj.ObjManager;
+import org.lambd.pointer.PointerToSet;
 import org.lambd.pointer.VarPointer;
 import soot.*;
 import soot.jimple.*;
@@ -46,23 +47,25 @@ public class StmtVisitor {
     private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
         String signature = invoke.getMethodRef().getSignature();
         boolean isSystemCallee = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
-        if (signature.contains("getDefaultManager") || signature.contains("close"))
-            return;
         SootWorld world = SootWorld.v();
         if (!world.quickMethodRef(signature, container, stmt)) {
             if (isSystemCallee)
                 return;
             SpCallGraph cg = container.getCg();
+            PointerToSet ptset = container.getPtset();
             // there are a lot of compromises here
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
                 Local base = (Local) instanceInvokeExpr.getBase();
-                VarPointer vp = container.getPtset().getVarPointer(base);
+                VarPointer vp = ptset.getVarPointer(base);
+                // prune
+                if (!ptset.hasFormatObj(vp) && invoke.getArgCount() == 0)
+                    return;
                  if (invoke instanceof SpecialInvokeExpr) {
                     SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
                     apply(callee, stmt);
                 } else if (instanceInvokeExpr instanceof InterfaceInvokeExpr
                         || vp.isEmpty()
-                        || container.getPtset().hasAbstractObj(vp)) {
+                        || ptset.hasAbstractObj(vp)) {
                     getCallee(stmt).forEach(callee -> {
                         apply(callee, stmt);
                     });
@@ -77,14 +80,15 @@ public class StmtVisitor {
                     });
                 }
             } else {
+                // static prune
+                if (invoke.getArgCount() == 0)
+                    return;
                 SootMethod callee = cg.resolve(invoke, null);
                 apply(callee, stmt);
             }
         }
     }
     private void apply(SootMethod callee, Stmt stmt) {
-        if (callee.getDeclaringClass().hasOuterClass() && !callee.getDeclaringClass().getOuterClass().getShortName().equals("PatternLayout"))
-            return;
         SootWorld world = SootWorld.v();
         if (world.getVisited().contains(callee)) {
 //            world.addLiveEdge(callee, container, stmt);

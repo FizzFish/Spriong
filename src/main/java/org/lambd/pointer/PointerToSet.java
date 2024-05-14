@@ -124,6 +124,12 @@ public class PointerToSet {
                     return true;
         return false;
     }
+    public boolean hasFormatObj(VarPointer vp) {
+        for (Obj obj : vp.getObjs())
+            if (obj instanceof FormatObj fo)
+                return true;
+        return false;
+    }
     public void getSameVP(Local from, Local to) {
         if (vars.containsKey(from)) {
             vars.put(to, vars.get(from));

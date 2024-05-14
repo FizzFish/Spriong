@@ -11,12 +11,16 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
+        long startTime = System.currentTimeMillis();
         SootWorld sootWorld = SootWorld.v();
         sootWorld.readConfig(args[0]);
         sootWorld.initSoot(args[1]);
         SootMethod entryMethod = sootWorld.getEntryMethod();
         sootWorld.visitMethod(entryMethod, null);
-//        sootWorld.show();
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        System.out.println("Execution time: " + duration + " milliseconds");
+//        sootWorld.showCFG();
     }
 }
 

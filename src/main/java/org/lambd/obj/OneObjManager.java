@@ -23,7 +23,7 @@ public class OneObjManager implements ObjManager {
     public void copy(Local from, Local to) {
         // to = from
         VarPointer fromPointer = ptset.getVarPointer(from);
-        if (from.getName().startsWith("$") && to.getName().equals("workingBuilder")) // workingBuilder = $stack51;
+        if (from.getName().startsWith("$")) // workingBuilder = $stack51;
             // merge to with from
             ptset.getSameVP(from, to);
         else {
