@@ -14,10 +14,12 @@ import java.util.stream.Collectors;
 
 public class SootWorld {
     private SootMethod entryMethod = null;
+    public SootClass entryClass = null;
     private static SootWorld world = null;
     private List<String> sourceInfo = new ArrayList<>();
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
+    private Set<SpMethod> updateCallers = new HashSet<>();
     private SootWorld() {
     }
     public void readConfig(String config) {
@@ -58,7 +60,7 @@ public class SootWorld {
             SootClass sootClass = Scene.v().loadClassAndSupport(className);
             sootClass.setApplicationClass(); // 将类标记为应用程序类
         }
-//        SootClass entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
+//
         Scene.v().loadNecessaryClasses();
 //        soot.options.Options.v().setPhaseOption("cg.cha", "on");
         soot.options.Options.v().setPhaseOption("cg", "all-reachable:true");
@@ -73,7 +75,8 @@ public class SootWorld {
         // 遍历所有类和方法
         Chain<SootClass> classes = Scene.v().getClasses();
         System.out.println("Classes size: " + classes.size());
-        this.entryMethod = Scene.v().getMethod(sourceInfo.get(1));
+        entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
+        entryMethod = Scene.v().getMethod(sourceInfo.get(1));
     }
     List<SootMethod> visited = new ArrayList<>();
     public List<SootMethod> getVisited() {
@@ -97,36 +100,32 @@ public class SootWorld {
     }
     public boolean quickCallee(SootMethod callee, SpMethod caller, Stmt stmt) {
         // 1. transition or sink not enter
-        Summary summary = getMethod(callee, caller).getSummary();
+        Summary summary = getMethod(callee).getSummary();
         if (!summary.isEmpty()) {
             summary.apply(caller, stmt);
             return true;
         }
         return false;
     }
-    private void debug(SpMethod caller, String until) {
-        SpMethod sm = caller;
-        List<String> li = new ArrayList<>();
-        while(sm == null || !sm.name.equals(until)) {
-            li.add(String.format("%s: %s", sm.getSootMethod().getDeclaringClass(), sm.getName()));
-            sm = sm.getCaller();
-        }
-        System.out.println(String.join("\n -> ", li));
-    }
     private boolean check(SootMethod method, String name, String cls) {
         if (method.getName().equals(name) && method.getDeclaringClass().getShortName().equals(cls))
             return true;
         return false;
     }
-    public void addLiveEdge(SootMethod callee, SpMethod caller, Stmt stmt) {
-        SpMethod spCallee = getMethod(callee, caller);
-        spCallee.addUpdateCaller(caller, stmt);
+    public void addActiveEdge(SootMethod callee, SpMethod caller) {
+        SpMethod spCallee = getMethod(callee);
+        if (!spCallee.isFinished()) {
+            spCallee.getSummary().addCaller(caller);
+        }
     }
-    public void visitMethod(SootMethod method, SpMethod caller) {
-        if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
+    public void visitMethod(SootMethod method) {
+        visitMethod(method, false);
+    }
+    public void visitMethod(SootMethod method, boolean must) {
+        if (!must && (!method.getDeclaringClass().isApplicationClass() || visited.contains(method)))
             return;
         visited.add(method);
-        SpMethod spMethod = getMethod(method, caller);
+        SpMethod spMethod = getMethod(method);
         StmtVisitor visitor = new StmtVisitor(spMethod);
         for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);
@@ -134,8 +133,8 @@ public class SootWorld {
         spMethod.getSummary().print(true);
         spMethod.finish();
     }
-    public SpMethod getMethod(SootMethod method, SpMethod caller) {
-        return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method), caller));
+    public SpMethod getMethod(SootMethod method) {
+        return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method)));
     }
     public void statistics() {
         int varSize = 0, objSize = 0;
@@ -145,5 +144,23 @@ public class SootWorld {
         }
         System.out.printf("there are %d functions, %d vars, %d objs\n",
                 visited.size(), varSize, objSize);
+    }
+    public void analyze(SootMethod entry) {
+        visitMethod(entry);
+//        if(!updateCallers.isEmpty()) {
+//            Set<SpMethod> copySet = new HashSet<>(updateCallers);
+//            updateCallers.clear();
+//            Iterator<SpMethod> iterator = copySet.iterator();
+//            while (iterator.hasNext()) {
+//                SpMethod element = iterator.next();
+//                iterator.remove();
+//                visitMethod(element.getSootMethod(), true);
+//                System.out.println("Polled Element: " + element);
+//            }
+//        }
+    }
+    public void addCaller(SpMethod caller) {
+        updateCallers.add(caller);
+//        System.out.println("Added Element: " + caller);
     }
 }

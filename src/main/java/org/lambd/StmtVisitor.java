@@ -12,7 +12,6 @@ import soot.jimple.toolkits.callgraph.Edge;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class StmtVisitor {
     private SpMethod container;
@@ -51,7 +50,7 @@ public class StmtVisitor {
         if (!world.quickMethodRef(signature, container, stmt)) {
             if (isSystemCallee)
                 return;
-            SpCallGraph cg = container.getCg();
+            SpHierarchy cg = SpHierarchy.v();
             PointerToSet ptset = container.getPtset();
             // there are a lot of compromises here
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
@@ -60,11 +59,15 @@ public class StmtVisitor {
                 // prune
                 if (!ptset.hasFormatObj(vp) && invoke.getArgCount() == 0)
                     return;
+//                if (vp.isEmpty() && base.getType() instanceof RefType rt && rt.getSootClass().getShortName().equals("ReusableSimpleMessage")) {
+                if (vp.isEmpty()) {
+                    vp.add(new Obj(base.getType(), stmt));
+                }
                  if (invoke instanceof SpecialInvokeExpr) {
                     SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
                     apply(callee, stmt);
                 } else if (instanceInvokeExpr instanceof InterfaceInvokeExpr
-                        || vp.isEmpty()
+                        || vp.isEmpty() // sometimes there are no objs
                         || ptset.hasAbstractObj(vp)) {
                     getCallee(stmt).forEach(callee -> {
                         apply(callee, stmt);
@@ -73,9 +76,8 @@ public class StmtVisitor {
                     vp.getObjs().forEach(obj -> {
                         if (obj.getType() instanceof RefType rt) {
                             SootMethod callee = cg.resolve(invoke, rt.getSootClass());
-                            if (callee == null)
-                                return;
-                            apply(callee, stmt);
+                            if (callee != null)
+                                apply(callee, stmt);
                         }
                     });
                 }
@@ -91,11 +93,12 @@ public class StmtVisitor {
     private void apply(SootMethod callee, Stmt stmt) {
         SootWorld world = SootWorld.v();
         if (world.getVisited().contains(callee)) {
-//            world.addLiveEdge(callee, container, stmt);
-            if (container.getSootMethod() != callee)
+            if (container.getSootMethod() != callee) {
+                world.addActiveEdge(callee, container);
                 world.quickCallee(callee, container, stmt);
+            }
         } else {
-            world.visitMethod(callee, container);
+            world.visitMethod(callee);
             world.quickCallee(callee, container, stmt);
         }
     }
@@ -111,7 +114,7 @@ public class StmtVisitor {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-                objManager.handleNew(lvar, newExpr.getType());
+                container.getPtset().addLocal(lvar, new Obj(newExpr.getType(), stmt));
             } else if (rhs instanceof Constant) {
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
@@ -129,9 +132,11 @@ public class StmtVisitor {
                 // StmpManager::add: ((Log4jLogEvent)event).makeMessageImmutable();
                 // maybe need turn obj type
                 Value op = castExpr.getOp();
-                if (op instanceof Local local && lvar.getType() instanceof RefType rtl) {
-                    container.getPtset().handleCast(lvar, local, rtl);
-                }
+                if (op instanceof Local rvar)
+                    container.getPtset().getSameVP(rvar, lvar);
+//                if (op instanceof Local local && lvar.getType() instanceof RefType rtl) {
+//                    container.getPtset().handleCast(lvar, local, rtl);
+//                }
             } else {
                 System.out.println("unsupported assignment rhs: " + stmt);
             }

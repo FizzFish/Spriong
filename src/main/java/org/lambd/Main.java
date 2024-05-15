@@ -16,7 +16,7 @@ public class Main {
         sootWorld.readConfig(args[0]);
         sootWorld.initSoot(args[1]);
         SootMethod entryMethod = sootWorld.getEntryMethod();
-        sootWorld.visitMethod(entryMethod, null);
+        sootWorld.analyze(entryMethod);
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         System.out.println("Execution time: " + duration + " milliseconds");

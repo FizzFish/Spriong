@@ -1,5 +1,6 @@
 package org.lambd.transition;
 
+import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.utils.Pair;
 import soot.RefType;
@@ -15,6 +16,7 @@ public class Summary {
     private Map<String, Set<ArgTrans>> transitionMap = new HashMap<>();
     private Map<String, Set<SinkTrans>> sinkMap = new HashMap<>();
     private Set<RetTrans> retSet = new HashSet<>();
+    private Set<SpMethod> updateCallers = new HashSet<>();
     public Summary(SpMethod container) {
         this.container = container;
     }
@@ -25,12 +27,16 @@ public class Summary {
     public void addTransition(int from, int to, Weight w, Stmt stmt) {
         String key = String.format("%d,%d", from, to);
         ArgTrans at = new ArgTrans(from, to, w, stmt);
-        transitionMap.computeIfAbsent(key, k -> new HashSet<>()).add(at);
+        boolean added = transitionMap.computeIfAbsent(key, k -> new HashSet<>()).add(at);
+        if (added && !updateCallers.isEmpty())
+            pushCallers();
     }
     public void addSink(String sink, int index, Weight weight, Stmt stmt) {
         String key = String.format("%s,%d", sink, index);
         SinkTrans st = new SinkTrans(sink, index, weight, stmt);
-        sinkMap.computeIfAbsent(key, k -> new HashSet<>()).add(st);
+        boolean added = sinkMap.computeIfAbsent(key, k -> new HashSet<>()).add(st);
+        if (added && !updateCallers.isEmpty())
+            pushCallers();
     }
     public void apply(SpMethod method, Stmt stmt) {
         for (RetTrans rt : retSet) {
@@ -47,18 +53,29 @@ public class Summary {
             }
         });
     }
+    public void addCaller(SpMethod caller) {
+        updateCallers.add(caller);
+    }
+    public void pushCallers() {
+        for (SpMethod caller : updateCallers)
+            SootWorld.v().addCaller(caller);
+        updateCallers.clear();
+    }
     public boolean isEmpty() {
-        return transitionMap.isEmpty() && sinkMap.isEmpty();
+        return transitionMap.isEmpty() && sinkMap.isEmpty() && retSet.isEmpty();
     }
     public void print(boolean simple) {
         if (!simple ) {
-            if (!transitionMap.isEmpty() || !sinkMap.isEmpty()) {
+            if (!isEmpty()) {
                 System.out.println(container + ": ");
                 transitionMap.forEach((key, values) -> {
                     System.out.printf("%s: %s\n", key, values);
                 });
                 sinkMap.forEach((key, values) -> {
                     System.out.printf("%s: %s\n", key, values);
+                });
+                retSet.forEach(value -> {
+                    System.out.printf("%s: %s\n", "ret", value);
                 });
             }
         } else if (!sinkMap.isEmpty()) {

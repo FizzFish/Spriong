@@ -1,13 +1,10 @@
 package org.lambd;
 
-import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.lambd.obj.*;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transition.*;
 import soot.*;
 import soot.jimple.*;
-
-import java.util.*;
 
 public class SpMethod {
     private SootMethod sootMethod;
@@ -16,19 +13,15 @@ public class SpMethod {
     private ObjManager manager;
     private PointerToSet ptset;
     private int id = 0;
-    private SpMethod caller;
-    public SpCallGraph cg;
     private State state;
-    private Map<SpMethod, Stmt> updateCaller = new HashMap<>();
-    public SpMethod(SootMethod sootMethod, int id, SpMethod caller) {
+    public SpMethod(SootMethod sootMethod, int id) {
         this.id = id;
-        this.caller = caller;
         this.name = sootMethod.getName();
         this.sootMethod = sootMethod;
         summary = new Summary(this);
-        ptset = new PointerToSet(this);
+        SootClass sc = id == 0 ? SootWorld.v().entryClass : null;
+        ptset = new PointerToSet(this, sc);
         manager = new OneObjManager(this, ptset);
-        cg = new SpCallGraph();
         state = State.VISITED;
     }
 
@@ -82,7 +75,7 @@ public class SpMethod {
     public void handleReturn(Stmt stmt, RefType type) {
         Value lhs = getParameter(stmt, -2);
         if (lhs instanceof Local l)
-            ptset.updateLhs(l, type);
+            ptset.updateLhs(l, type, stmt);
     }
     public String getName() {
         return name;
@@ -91,7 +84,7 @@ public class SpMethod {
         return sootMethod;
     }
     public String toString() {
-        return String.format("%s@%d: %d", sootMethod, id, caller==null? -1: caller.id);
+        return String.format("%s@%d", sootMethod, id);
     }
     public ObjManager getManager() {
         return manager;
@@ -99,23 +92,14 @@ public class SpMethod {
     public Summary getSummary() {
         return summary;
     }
-    public SpMethod getCaller() {
-        return caller;
-    }
     public PointerToSet getPtset() {
         return ptset;
     }
-    public SpCallGraph getCg() {
-        return cg;
-    }
     public void finish() {
         state = State.FINISHED;
-//        updateCaller.forEach((c, s) -> {
-//            summary.apply(c, s);
-//        });
     }
-    public void addUpdateCaller(SpMethod caller, Stmt stmt) {
-        this.updateCaller.put(caller, stmt);
+    public boolean isFinished() {
+        return state == State.FINISHED;
     }
 }
 enum State {

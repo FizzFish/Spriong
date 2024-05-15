@@ -1,7 +1,7 @@
 package org.lambd.pointer;
 
 import com.google.common.collect.HashBasedTable;
-import org.lambd.SpCallGraph;
+import org.lambd.SpHierarchy;
 import org.lambd.SpMethod;
 import org.lambd.obj.FormatObj;
 import org.lambd.obj.GenObj;
@@ -14,15 +14,14 @@ import soot.jimple.Stmt;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PointerToSet {
     private Map<Local, VarPointer> vars = new HashMap<>();
-    private HashBasedTable<Obj, String, InstanceField> fields = HashBasedTable.create();
+    private HashBasedTable<Obj, SootField, InstanceField> fields = HashBasedTable.create();
     private Map<Obj, ArrayIndex> arrays = new HashMap<>();
     private Map<SootField, StaticField> statics = new HashMap<>();
     private SpMethod container;
-    public PointerToSet(SpMethod container) {
+    public PointerToSet(SpMethod container, SootClass sc) {
         this.container = container;
         Body body;
         try {
@@ -34,12 +33,13 @@ public class PointerToSet {
         List<Local> parameters = body.getParameterLocals();
         for (int i = 0; i < parameters.size(); i++) {
             Local var = parameters.get(i);
-            FormatObj obj = new FormatObj(var.getType(), container, i);
+            FormatObj obj = new FormatObj(var.getType(), null, i);
             addLocal(var, obj);
         }
         if (!container.getSootMethod().isStatic()) {
             Local thisVar = body.getThisLocal();
-            FormatObj obj = new FormatObj(thisVar.getType(), container, -1);
+            Type type = sc == null ? thisVar.getType() : sc.getType();
+            FormatObj obj = new FormatObj(type, null, -1);
             addLocal(thisVar, obj);
         }
     }
@@ -76,13 +76,14 @@ public class PointerToSet {
             toPointer.addAll(objs);
         });
     }
-    public void storeAlias(VarPointer from, FormatObj base, String field, Stmt stmt) {
+    public void storeAlias(VarPointer from, FormatObj base, SootField field, Stmt stmt) {
         // x.f = y
         from.getObjs().forEach(f -> {
             if (f instanceof FormatObj fObj) {
                 if (base.getIndex() != fObj.getIndex()) {
-                    String toStr = base.getFields().isEmpty() ? field : String.format("%s.%s", base.getFields(), field);
-                    Weight w = new Weight(fObj.getFields(), toStr);
+                    List<SootField> toFields = new ArrayList<>(base.getFields());
+                    toFields.add(field);
+                    Weight w = new Weight(fObj.getFields(), toFields);
                     w.setUpdate();
                     container.getSummary().addTransition(fObj.getIndex(), base.getIndex(), w, stmt);
                 }
@@ -102,8 +103,8 @@ public class PointerToSet {
                     }
                 });
     }
-    public void updateLhs(Local lhs, RefType type) {
-        Obj obj = new Obj(type, container);
+    public void updateLhs(Local lhs, RefType type, Stmt stmt) {
+        Obj obj = new Obj(type, stmt);
         getVarPointer(lhs).add(obj);
     }
     private boolean canHoldString(Type type) {
@@ -135,36 +136,34 @@ public class PointerToSet {
             vars.put(to, vars.get(from));
         }
     }
-    public InstanceField getInstanceField(Obj base, String field) {
+    public InstanceField getInstanceField(Obj base, SootField field) {
         if (fields.contains(base, field))
             return fields.get(base, field);
         InstanceField ifield = new InstanceField(base, field);
         if (base instanceof FormatObj fobj) {
-            Type type = fieldType(fobj, field);
-            if (type == null)
-                return null;
-            GenObj gobj = new GenObj(fobj, field, type);
-            ifield.add(gobj);
+            Type type = field.getType();
+            if (hasField(fobj, field)) {
+                GenObj gobj = new GenObj(fobj, field, type);
+                ifield.add(gobj);
+            }
         }
         fields.put(base, field, ifield);
         return ifield;
     }
-    private Type fieldType(FormatObj base, String field) {
-        Type baseType = base.type;
-        if (!field.equals("[*]") && baseType instanceof RefType refType) {
-            try {
-                return refType.getSootClass().getFieldByName(field).getType();
-            } catch (Exception e) {
-                return null;
-            }
-
+    private boolean hasField(FormatObj base, SootField field) {
+        if (field.equals(Utils.arrayField))
+            return true;
+        if (base.type instanceof RefType refType) {
+            SootClass declare = field.getDeclaringClass();
+            SpHierarchy cg = SpHierarchy.v();
+            if (!cg.isSubClass(declare, refType.getSootClass()))
+                return false;
         }
-        return baseType;
-
+        return true;
     }
-    public Set<Pointer> varFields(Local var, List<String> fields) {
+    public Set<Pointer> varFields(Local var, List<SootField> fields) {
         Set<Pointer> pointers = Set.of(getVarPointer(var));
-        for (String field : fields) {
+        for (SootField field : fields) {
             pointers = pointers.stream().flatMap(Pointer::objs)
                     .map(o -> getInstanceField(o, field))
                     .filter(Objects::nonNull)
@@ -200,7 +199,7 @@ public class PointerToSet {
                     if (o instanceof FormatObj fobj) {
                         // ret.field = fobj
                         Weight w = new Weight(fobj.getFields(), field);
-                        container.getSummary().addTransition(fobj.getIndex(), -2, w, stmt);
+                        summary.addTransition(fobj.getIndex(), -2, w, stmt);
                     }
                 });
             });
@@ -209,10 +208,18 @@ public class PointerToSet {
 
     public void handleCast(Local lhs, Local rhs, RefType type) {
         VarPointer vp = getVarPointer(rhs);
-        SpCallGraph cg = container.getCg();
+        SpHierarchy cg = SpHierarchy.v();
         vars.put(lhs, vp);
+        /** cannot always cast
+        * if (msg instanceof MultiFormatStringBuilderFormattable) {
+        *   ((MultiFormatStringBuilderFormattable)msg).formatTo(this.formats, workingBuilder);
+        *} else {
+        *   ((StringBuilderFormattable)msg).formatTo(workingBuilder);
+        *}
+        */
         vp.getObjs().forEach(obj -> {
-            if (obj.getType() instanceof RefType rt && cg.isSubClass(type.getSootClass(), rt.getSootClass()))
+            if (obj.getType() instanceof RefType rt && type.getSootClass().isConcrete()
+                    && cg.isSubClass(type.getSootClass(), rt.getSootClass()))
                 obj.setType(type);
         });
     }

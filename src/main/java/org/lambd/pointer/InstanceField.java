@@ -5,8 +5,8 @@ import soot.SootField;
 
 public class InstanceField extends Pointer {
     private final Obj base;
-    private final String field;
-    public InstanceField(Obj base, String field) {
+    private final SootField field;
+    public InstanceField(Obj base, SootField field) {
         this.base = base;
         this.field = field;
     }

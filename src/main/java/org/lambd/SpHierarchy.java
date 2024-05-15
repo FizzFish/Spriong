@@ -2,32 +2,19 @@ package org.lambd;
 
 import com.google.common.collect.HashBasedTable;
 import soot.*;
-import soot.jimple.InstanceInvokeExpr;
 import soot.jimple.InvokeExpr;
-import soot.jimple.StaticInvokeExpr;
-import soot.jimple.toolkits.callgraph.CallGraph;
-import soot.jimple.toolkits.callgraph.Edge;
 import soot.util.NumberedString;
 
-import java.util.*;
-
-public class SpCallGraph {
-    public SpCallGraph() {
+public class SpHierarchy {
+    public SpHierarchy() {
     }
-//    public Set<SpMethod> resolve(RefType type, Unit unit) {
-//        Hierarchy hierarchy = Scene.v().getActiveHierarchy();
-//        Set<SpMethod> methods = new HashSet();
-//        for (Iterator<Edge> it = cg.edgesOutOf(unit); it.hasNext();) {
-//            Edge edge = it.next();
-//            SootMethod sootMethod = edge.getTgt().method();
-//            SootClass declaringClass = sootMethod.getDeclaringClass();
-//            SootClass baseClass = type.getSootClass();
-//            if (hierarchy.isClassSubclassOf(declaringClass, baseClass))
-//                methods.add(SootWorld.v().getMethod(sootMethod));
-//        }
-//
-//        return methods;
-//    }
+    private static SpHierarchy cg = null;
+    public static SpHierarchy v() {
+        if (cg == null) {
+            cg = new SpHierarchy();
+        }
+        return cg;
+    }
     private HashBasedTable<SootClass, NumberedString, SootMethod> dispatchTable = HashBasedTable.create();
     public SootMethod resolve(InvokeExpr invoke, SootClass cls) {
         SootMethodRef subsignature = invoke.getMethodRef();
@@ -60,7 +47,7 @@ public class SpCallGraph {
         // 2. Otherwise, method resolution attempts to locate the
         // referenced method in C and its superclasses
         Hierarchy hierarchy = Scene.v().getActiveHierarchy();
-        for (SootClass c = jclass; c != null; c = c.getSuperclass()) {
+        for (SootClass c = jclass; c != null && c.hasSuperclass(); c = c.getSuperclass()) {
             SootMethod method = c.getMethodUnsafe(subsignature);
             if (method != null && (allowAbstract || !method.isAbstract())) {
                 return method;
@@ -68,7 +55,7 @@ public class SpCallGraph {
         }
         // 3. Otherwise, method resolution attempts to locate the
         // referenced method in the superinterfaces of the specified class C
-        for (SootClass c = jclass; c != null; c = c.getSuperclass()) {
+        for (SootClass c = jclass; c != null && c.hasSuperclass(); c = c.getSuperclass()) {
             for (SootClass iface : c.getInterfaces()) {
                 SootMethod method = lookupMethodFromSuperinterfaces(
                         iface, subsignature, allowAbstract);

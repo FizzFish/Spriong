@@ -21,6 +21,4 @@ public interface ObjManager {
     void loadArray(Local to, Local base);
     // x[i] = y
     void storeArray(Local base, Local from, Stmt stmt);
-
-    void handleNew(Local var, Type type);
 }

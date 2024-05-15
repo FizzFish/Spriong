@@ -13,22 +13,27 @@ import java.util.stream.Collectors;
 public class Weight {
     public static final Weight COPY = new Weight(true);
     public static final Weight ONE = new Weight(false);
-    private String srcFields = "";
-    private String dstFields = "";
+    private List<SootField> srcFields = new ArrayList<>();
+    private List<SootField> dstFields = new ArrayList<>();
     private boolean update = false;
-    public Weight(String fields, String _fields) {
-        this.srcFields = fields;
-        this.dstFields = _fields;
+    public Weight(List<SootField> srcFields, List<SootField> dstFields) {
+        this.srcFields.addAll(srcFields);
+        this.dstFields.addAll(dstFields);
     }
-    public Weight(String field) {
-        this.srcFields = field;
+    public Weight(List<SootField> srcFields, SootField dstField) {
+        this.srcFields.addAll(srcFields);
+        this.dstFields.add(dstField);
+    }
+    public Weight(List<SootField> field) {
+        this.srcFields.addAll(field);
     }
     public Weight(boolean update) {
         this.update = update;
     }
-    public Weight(String fields, Weight w) {
-        this.srcFields = Utils.concat(fields, w.srcFields);
-        this.dstFields = w.dstFields;
+    public Weight(SootField fields, Weight w) {
+        this.srcFields.add(fields);
+        this.srcFields.addAll(w.srcFields);
+        this.dstFields.addAll(w.dstFields);
         this.update = w.update;
     }
     public boolean isUpdate() {
@@ -42,11 +47,11 @@ public class Weight {
         if (srcFields.isEmpty() && dstFields.isEmpty())
             base = "one";
         else if (srcFields.isEmpty())
-            base = "-" + dstFields;
+            base = "-" + Utils.fieldString(dstFields);
         else if (dstFields.isEmpty())
-            base = srcFields;
+            base = Utils.fieldString(srcFields);
         else
-            base = srcFields + "-" + dstFields;
+            base = Utils.fieldString(srcFields) + "-" + Utils.fieldString(dstFields);
         return base + (update ? "*" : "");
     }
     public boolean equals(Object obj) {
@@ -58,15 +63,11 @@ public class Weight {
     public int hashCode() {
         return srcFields.hashCode() + dstFields.hashCode();
     }
-    public List<String> getFromFields() {
-        if (srcFields.isEmpty())
-            return Collections.emptyList();
-        return Arrays.stream(srcFields.split("\\.")).collect(Collectors.toList());
+    public List<SootField> getFromFields() {
+        return srcFields;
     }
-    public List<String> getToFields() {
-        if (dstFields.isEmpty())
-            return Collections.emptyList();
-        return Arrays.stream(dstFields.split("\\.")).collect(Collectors.toList());
+    public List<SootField> getToFields() {
+        return dstFields;
     }
 
 }

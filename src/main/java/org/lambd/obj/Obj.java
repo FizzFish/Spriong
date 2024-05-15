@@ -7,13 +7,10 @@ import soot.jimple.Stmt;
 
 public class Obj {
     public Type type;
-    public SpMethod container;
-    public Obj(Type type, SpMethod container) {
+    public Stmt stmt;
+    public Obj(Type type, Stmt stmt) {
         this.type = type;
-        this.container = container;
-    }
-    public SpMethod getContainer() {
-        return container;
+        this.stmt = stmt;
     }
     public Type getType() {
         return type;
@@ -25,9 +22,6 @@ public class Obj {
         return false;
     }
 
-    public String getFields() {
-        return null;
-    }
     public int hashCode() {
         return type.hashCode();
     }

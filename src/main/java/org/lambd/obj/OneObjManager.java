@@ -2,7 +2,6 @@ package org.lambd.obj;
 
 import org.lambd.SpMethod;
 import org.lambd.pointer.*;
-import org.lambd.transition.Weight;
 import org.lambd.utils.Utils;
 import soot.Local;
 import soot.SootField;
@@ -34,7 +33,7 @@ public class OneObjManager implements ObjManager {
     public void loadField(Local to, Local base, SootField field) {
         // x = y.f
         ptset.getLocalObjs(base).forEach(obj -> {
-            InstanceField fromPointer = ptset.getInstanceField(obj, field.getName());
+            InstanceField fromPointer = ptset.getInstanceField(obj, field);
             VarPointer toPointer = ptset.getVarPointer(to);
             ptset.copy(fromPointer, toPointer);
         });
@@ -52,9 +51,9 @@ public class OneObjManager implements ObjManager {
         // analysis alias
         VarPointer fromPointer = ptset.getVarPointer(from);
         ptset.getLocalObjs(base).forEach(obj -> {
-            InstanceField toPointer = ptset.getInstanceField(obj, field.getName());
+            InstanceField toPointer = ptset.getInstanceField(obj, field);
             if (obj instanceof FormatObj formatObj)
-                ptset.storeAlias(fromPointer, formatObj, field.getName(), stmt);
+                ptset.storeAlias(fromPointer, formatObj, field, stmt);
             ptset.copy(fromPointer, toPointer);
         });
     }
@@ -68,7 +67,7 @@ public class OneObjManager implements ObjManager {
         // x = y[i]
         ptset.getLocalObjs(base).forEach(obj -> {
 //            assert obj instanceof ArrayObj;
-            InstanceField fromPointer = ptset.getInstanceField(obj, Utils.arrayStr);
+            InstanceField fromPointer = ptset.getInstanceField(obj, Utils.arrayField);
             VarPointer toPointer = ptset.getVarPointer(to);
             ptset.copy(fromPointer, toPointer);
         });
@@ -78,14 +77,10 @@ public class OneObjManager implements ObjManager {
         ptset.getLocalObjs(base).forEach(obj -> {
             VarPointer fromPointer = ptset.getVarPointer(from);
             if (obj instanceof FormatObj formatObj)
-                ptset.storeAlias(fromPointer, formatObj, Utils.arrayStr, stmt);
-            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayStr);
+                ptset.storeAlias(fromPointer, formatObj, Utils.arrayField, stmt);
+            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayField);
             ptset.copy(fromPointer, toPointer);
         });
-    }
-    public void handleNew(Local var, Type type) {
-        Obj obj = new NewObj(type, container);
-        ptset.addLocal(var, obj);
     }
 
 }

@@ -7,6 +7,7 @@ sinks:
 #  - { method: "<java.lang.reflect.Method: java.lang.Object invoke(java.lang.Object,java.lang.Object[])>", index: -1 }
 #  - { method: "<javax.script.ScriptEngine: java.lang.Object eval(java.lang.String)>", index: 0 }
   - { method: "<javax.naming.Context: java.lang.Object lookup(java.lang.String)>", index: 0 }
+#  - { method: "<org.apache.logging.log4j.core.lookup.StrSubstitutor: java.lang.String replace(org.apache.logging.log4j.core.LogEvent,java.lang.String)>", index: 1 }
 # kind: 0->pointer copy; 1->deep copy
 # <init> donnot care about
 transfers:
