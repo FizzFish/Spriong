@@ -29,15 +29,18 @@ public class ArgTrans implements Transition {
         return String.format("%s.%s = %s.%s", Utils.argString(to), Utils.fieldString(weight.getToFields()),
                 Utils.argString(from), Utils.fieldString(weight.getFromFields()));
     }
+    public Weight getWeight() {
+        return weight;
+    }
     public int hashCode() {
-        return Objects.hash(from, to);
+        return Objects.hash(from, to, weight);
     }
     public boolean equals(Object obj) {
         if (obj == this) {
             return true;
         }
         if (obj instanceof ArgTrans at) {
-            return weight.equals(at.weight);
+            return from == at.from && to == at.to && weight.equals(at.weight);
         }
         return false;
     }

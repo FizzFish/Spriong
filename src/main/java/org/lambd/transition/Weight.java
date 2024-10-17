@@ -56,12 +56,12 @@ public class Weight {
     }
     public boolean equals(Object obj) {
         if (obj instanceof Weight w) {
-            return srcFields.equals(w.srcFields) && dstFields.equals(w.dstFields);
+            return toString().equals(w.toString());
         }
         return false;
     }
     public int hashCode() {
-        return srcFields.hashCode() + dstFields.hashCode();
+        return Objects.hash(srcFields, dstFields);
     }
     public List<SootField> getFromFields() {
         return srcFields;

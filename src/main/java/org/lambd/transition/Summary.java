@@ -30,8 +30,11 @@ public class Summary {
     }
     public void addTransition(int from, int to, Weight w, Stmt stmt) {
         String key = String.format("%d,%d", from, to);
+        Set<ArgTrans> transitions = transitionMap.computeIfAbsent(key, k -> new HashSet<>());
+        if (transitions.stream().anyMatch(t -> t.getWeight().equals(w)))
+            return;
         ArgTrans at = new ArgTrans(from, to, w, stmt);
-        boolean added = transitionMap.computeIfAbsent(key, k -> new HashSet<>()).add(at);
+        boolean added = transitions.add(at);
         if (added && !updateCallers.isEmpty())
             pushCallers();
     }
