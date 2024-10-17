@@ -115,15 +115,16 @@ public class StmtVisitor {
      */
     private void apply(SootMethod callee, Stmt stmt) {
         SootWorld world = SootWorld.v();
+        if (container.getSootMethod() == callee)
+            return;
         if (world.getVisited().contains(callee)) {
-            if (container.getSootMethod() != callee) {
-                world.addActiveEdge(callee, container);
-                world.quickCallee(callee, container, stmt);
-            }
+            world.addActiveEdge(callee, container);
+            world.quickCallee(callee, container, stmt);
         } else {
             world.visitMethod(callee);
             world.quickCallee(callee, container, stmt);
         }
+        SootWorld.v().getNeoGraph().createRelationWithMethods(container.getSootMethod(), callee);
     }
 
     /**

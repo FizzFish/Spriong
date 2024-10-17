@@ -91,4 +91,10 @@ public class Summary {
             });
         }
     }
+    public Map<String, Set<ArgTrans>> getTRansition() {
+        return transitionMap;
+    }
+    public Map<String, Set<SinkTrans>> getSink() {
+        return sinkMap;
+    }
 }

@@ -1,5 +1,6 @@
 package org.lambd;
 
+import org.lambd.transition.NeoGraph;
 import org.lambd.transition.Summary;
 import org.lambd.transition.TaintConfig;
 import org.lambd.transition.Transition;
@@ -10,7 +11,6 @@ import soot.options.Options;
 import soot.util.Chain;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 1.通过soot分析所有相关的jar包
@@ -24,7 +24,10 @@ public class SootWorld {
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private Set<SpMethod> updateCallers = new HashSet<>();
+    private NeoGraph graph;
     private SootWorld() {
+        graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456");
+        graph.clear();
     }
     public void readConfig(String config) {
         String path = String.format("src/main/resources/%s", config);
@@ -136,6 +139,10 @@ public class SootWorld {
         }
         spMethod.getSummary().print(true);
         spMethod.finish();
+        graph.updateMethodSummary(spMethod);
+    }
+    public NeoGraph getNeoGraph() {
+        return graph;
     }
     public SpMethod getMethod(SootMethod method) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method)));
