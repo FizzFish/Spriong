@@ -5,6 +5,9 @@ import soot.*;
 import soot.jimple.InvokeExpr;
 import soot.util.NumberedString;
 
+/**
+ * 自己实现的hierarchy，主要对外的接口是resolve(invoke, cls)
+ */
 public class SpHierarchy {
     public SpHierarchy() {
     }

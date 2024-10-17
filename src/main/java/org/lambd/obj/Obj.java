@@ -5,6 +5,9 @@ import org.lambd.transition.RetTrans;
 import soot.Type;
 import soot.jimple.Stmt;
 
+/**
+ * Obj 代表一个抽象的Java对象，例如：o = New Object()
+ */
 public class Obj {
     public Type type;
     public Stmt stmt;

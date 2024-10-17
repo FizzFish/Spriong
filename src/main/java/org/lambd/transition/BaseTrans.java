@@ -4,6 +4,10 @@ import org.apache.commons.math3.fraction.Fraction;
 import org.lambd.SpMethod;
 import soot.jimple.Stmt;
 
+/**
+ * 数据流配置：from-kind->to
+ * kind = 1: real copy byte
+ */
 public record BaseTrans(int from, int to, int kind) implements Transition {
     public String toString() {
         return "(" + from + ", " + to + ", " + kind +")";

@@ -13,6 +13,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+/**
+ * Visitor模式访问不同的Stmts，关键的几种Statement:
+ * 1. AssignStmt: 主要的数据流传播方式，具体还需要考虑域的问题
+ * 2. InvokeStmt: 调用其他函数时也产生了数据流传播，精准的callee选择很重要（CHA、VTA）
+ */
 public class StmtVisitor {
     private SpMethod container;
     public StmtVisitor(SpMethod method) {
@@ -43,6 +48,18 @@ public class StmtVisitor {
         } else if (val instanceof ThisRef thisRef) {
         }
     }
+
+    /**
+     * invoke的处理：
+     * 1.系统调用不进入处理
+     * 2.如果是之前自定义的函数signature，则直接应用该函数的效果：quickMethodRef
+     * 3.通过ptset(base)来找到精确的callee，然后应用该函数的效果：apply(callee, stmt)
+     * (1)ptset(base)为空，增加一个Obj对象；剪枝invoke.getArgCount() == 0的情况
+     * (2)SpecialInvoke
+     * (3)InterfaceInvoke || base is abstract：处理所有callee
+     * (4)VirtualInvoke: resolve(invoke, obj.type)
+     * (5)StaticInvoke:
+     */
     private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
         String signature = invoke.getMethodRef().getSignature();
         boolean isSystemCallee = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
@@ -90,6 +107,12 @@ public class StmtVisitor {
             }
         }
     }
+
+    /**
+     * 如果已经访问过callee，则之间应用该函数的摘要效果；
+     * 否则先访问该函数，再应用其摘要效果
+     * 这里想解决callgraph中的环问题，但没有处理好[TODO]
+     */
     private void apply(SootMethod callee, Stmt stmt) {
         SootWorld world = SootWorld.v();
         if (world.getVisited().contains(callee)) {
@@ -102,6 +125,13 @@ public class StmtVisitor {
             world.quickCallee(callee, container, stmt);
         }
     }
+
+    /**
+     * x=y
+     * x=y.f; x=c.f; x=y[i]
+     * x=cast(T)y: 共享相同的ptset: getSameVP
+     * x.f = y; c.f = y; x[i] = y
+     */
     public void visit(AssignStmt stmt) {
         Value lhs = stmt.getLeftOp();
         Value rhs = stmt.getRightOp();
@@ -158,6 +188,12 @@ public class StmtVisitor {
             System.out.println("unsupported assignment lhs: " + stmt);
         }
     }
+
+    /**
+     * 获取unit对应的所有可能得callees
+     * @param unit
+     * @return
+     */
     private Set<SootMethod> getCallee(Unit unit) {
         Hierarchy hierarchy = Scene.v().getActiveHierarchy();
         CallGraph cg = Scene.v().getCallGraph();

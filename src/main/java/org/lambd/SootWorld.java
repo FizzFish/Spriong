@@ -12,6 +12,10 @@ import soot.util.Chain;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 1.通过soot分析所有相关的jar包
+ * 2.从入口方法开始，分析所有方法visitMethod
+ */
 public class SootWorld {
     private SootMethod entryMethod = null;
     public SootClass entryClass = null;

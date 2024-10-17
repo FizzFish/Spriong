@@ -4,6 +4,9 @@ import org.lambd.SpMethod;
 import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
 
+/**
+ * 代表某个参数param-index与污点信息sinkDes相关，权重是weight
+ */
 public class SinkTrans implements Transition {
     private String sinkDes;
     private int argIndex;

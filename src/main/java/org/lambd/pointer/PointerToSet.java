@@ -29,7 +29,7 @@ public class PointerToSet {
         } catch (Exception e) {
             return;
         }
-
+        // 生成FormatObj抽象参数对象
         List<Local> parameters = body.getParameterLocals();
         for (int i = 0; i < parameters.size(); i++) {
             Local var = parameters.get(i);
@@ -43,15 +43,29 @@ public class PointerToSet {
             addLocal(thisVar, obj);
         }
     }
+
+    /**
+     * 场景：(1) callee参数 (2) NewExpr
+     */
     public void addLocal(Local var, Obj obj) {
         VarPointer vp = getVarPointer(var);
         vp.add(obj);
     }
+
+    /**
+     * pointer(to) merge pointer(from) objects
+     */
     public void copy(Pointer from, Pointer to) {
         if (from == null || to == null)
             return;
         to.addAll(from.getObjs());
     }
+
+    /**
+     * 对于一个有update属性的Weight关系来说，field写需要进一步更新FormatObj对象之间的Weight关系
+     * 对于to.w2 = from.w1，如果to和from均包含参数对象，且w1/w2具有update属性，则生成新的transition
+     * 这里感觉需要对w2进行判断，即w2不能为空，需要进一步测试[TODO]
+     */
     public void update(Local from, Local to, Weight weight, Stmt stmt) {
         // to.w2 = from.w1
         Set<Pointer> fields = varFields(from, weight.getFromFields());
@@ -76,6 +90,11 @@ public class PointerToSet {
             toPointer.addAll(objs);
         });
     }
+
+    /**
+     * 场景x.f = y 或 x[i] = y
+     * 这里貌似base不会是GenObj，需要进一步测试[TODO]
+     */
     public void storeAlias(VarPointer from, FormatObj base, SootField field, Stmt stmt) {
         // x.f = y
         from.getObjs().forEach(f -> {
@@ -91,6 +110,11 @@ public class PointerToSet {
         });
 
     }
+
+    /**
+     * 在sink反向跟踪时，仅关注String类型，可以大幅减少分析
+     * 但是在Java Web中的Request请求分析时，可能需要完善[TODO]
+     */
     public void genSink(String sink, Weight weight, Local var, Stmt stmt) {
         // var.w => sink
         varFields(var, weight.getFromFields()).stream().
@@ -103,6 +127,10 @@ public class PointerToSet {
                     }
                 });
     }
+
+    /**
+     * handleReturn时，有时需要为lvar增加返回对象，避免lvar的pset为空，但这样可能是多余的，是否需要简化[TODO]
+     */
     public void updateLhs(Local lhs, RefType type, Stmt stmt) {
         Obj obj = new Obj(type, stmt);
         getVarPointer(lhs).add(obj);

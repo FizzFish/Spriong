@@ -11,6 +11,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 包含argtrans、sinktrans、rettrans三种摘要效果
+ * updateCallers为了解决callgraph出现环的情况[TODO]
+ */
 public class Summary {
     private SpMethod container;
     private Map<String, Set<ArgTrans>> transitionMap = new HashMap<>();

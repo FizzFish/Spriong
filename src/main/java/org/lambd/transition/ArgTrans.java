@@ -7,6 +7,9 @@ import soot.jimple.Stmt;
 
 import java.util.Objects;
 
+/**
+ * 与BaseTrans类似，其实可以合并
+ */
 public class ArgTrans implements Transition {
     private int from, to;
     private Weight weight;

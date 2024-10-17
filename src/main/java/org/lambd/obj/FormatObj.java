@@ -13,6 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * FormatObj代表一个参数抽象对象，type是声明的类型
+ * 当函数调用时，base.invoke(args...)时会生成多个参数对象，编号为-1,0,1...
+ */
 public class FormatObj extends Obj {
     private int index;
     protected List<SootField> fields = new ArrayList<>();
