@@ -209,7 +209,6 @@ public class StmtVisitor {
 //            }
             methods.add(sootMethod);
         }
-
         return methods;
     }
     public void visit(InvokeStmt stmt) {

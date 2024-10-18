@@ -7,6 +7,8 @@ import org.lambd.transition.Transition;
 import org.lambd.utils.ClassNameExtractor;
 import soot.*;
 import soot.jimple.*;
+import soot.jimple.toolkits.callgraph.CallGraph;
+import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
 import soot.util.Chain;
 
@@ -71,9 +73,12 @@ public class SootWorld {
         Scene.v().loadNecessaryClasses();
 //        soot.options.Options.v().setPhaseOption("cg.cha", "on");
         soot.options.Options.v().setPhaseOption("cg", "all-reachable:true");
-        Options.v().setPhaseOption("cg.spark", "on");
-        Options.v().setPhaseOption("cg.spark", "rta:true");  // 开启RTA
-        Options.v().setPhaseOption("cg.spark", "on-fly-cg:false"); // 禁用即时调用图生成
+//        Options.v().setPhaseOption("cg.spark", "on");
+//        Options.v().setPhaseOption("cg.spark", "rta:true");  // 开启RTA
+        // 禁用 SPARK
+        Options.v().setPhaseOption("cg.spark", "on:false");
+        Options.v().setPhaseOption("cg", "rta:true");
+//        Options.v().setPhaseOption("cg.spark", "on-fly-cg:false"); // 禁用即时调用图生成
 
         soot.options.Options.v().setPhaseOption("jb", "use-original-names:true");
 //        soot.options.Options.v().setPhaseOption("jb.ls", "enabled:false");
@@ -173,5 +178,63 @@ public class SootWorld {
     public void addCaller(SpMethod caller) {
         updateCallers.add(caller);
 //        System.out.println("Added Element: " + caller);
+    }
+    public void driverAnalysis(String jars) {
+
+        G.reset();
+        String sourceDir = "src/main/resources/";
+        List<String> jarPaths = new ArrayList<>();
+        for (String jar: jars.split(";"))
+            jarPaths.add(sourceDir.concat(jar));
+
+        String driverPath = "logtest/target/classes";
+        String driverClass = "org.test.Main";
+        String sootCp = String.format("src/main/resources/rt.jar;%s;%s", String.join(";", jarPaths), driverPath);
+        Options.v().set_soot_classpath(sootCp);
+
+        // 设置要分析的类
+        List<String> dir =  new ArrayList<>();
+        dir.add("logtest/target/classes");
+        dir.addAll(jarPaths);
+        Options.v().set_process_dir(dir);
+
+        // 设置 Soot 选项
+//        soot.options.Options.v().set_app(true);
+        Options.v().set_whole_program(true);
+        Options.v().set_allow_phantom_refs(true);
+        soot.options.Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*"));
+        Options.v().set_no_bodies_for_excluded(true);
+        Options.v().set_verbose(true);
+
+        // 禁用 all-reachable 选项
+        Options.v().setPhaseOption("cg", "all-reachable:false");
+
+        // 选择调用图算法，例如 RTA
+        Options.v().setPhaseOption("cg", "rta:true");
+        Options.v().setPhaseOption("cg.cha", "on:false");
+        Options.v().setPhaseOption("cg.spark", "on:false");
+
+        Options.v().set_output_format(Options.output_format_none);
+
+
+        // 加载入口类
+        SootClass mainClass = Scene.v().loadClassAndSupport(driverClass);
+        Scene.v().setMainClass(mainClass);
+        // 设置入口点
+        List<SootMethod> entryPoints = new ArrayList<>();
+
+        entryPoints.add(mainClass.getMethodByName("main"));
+        Scene.v().setEntryPoints(entryPoints);
+
+        // 加载必要的类
+        Scene.v().loadNecessaryClasses();
+
+        // 运行 Soot
+        PackManager.v().runPacks();
+
+        System.out.println("Classes size: " + Scene.v().getClasses().size());
+
+        entryClass = mainClass;
+        entryMethod = mainClass.getMethodByName("main");
     }
 }

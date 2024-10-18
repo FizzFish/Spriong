@@ -14,7 +14,8 @@ public class Main {
         long startTime = System.currentTimeMillis();
         SootWorld sootWorld = SootWorld.v();
         sootWorld.readConfig(args[0]);
-        sootWorld.initSoot(args[1]);
+//        sootWorld.initSoot(args[1]);
+        sootWorld.driverAnalysis(args[1]);
         SootMethod entryMethod = sootWorld.getEntryMethod();
         sootWorld.analyze(entryMethod);
         long endTime = System.currentTimeMillis();
