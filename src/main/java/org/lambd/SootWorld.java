@@ -146,8 +146,8 @@ public class SootWorld {
         spMethod.finish();
         graph.updateMethodSummary(spMethod);
     }
-    public NeoGraph getNeoGraph() {
-        return graph;
+    public void updateNeo4jRelation(SootMethod caller, SootMethod callee) {
+        graph.createRelationWithMethods(caller, callee);
     }
     public SpMethod getMethod(SootMethod method) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method)));
@@ -174,6 +174,8 @@ public class SootWorld {
 //                System.out.println("Polled Element: " + element);
 //            }
 //        }
+        System.out.println("Analyze end, update Neo4j database");
+        graph.flush();
     }
     public void addCaller(SpMethod caller) {
         updateCallers.add(caller);

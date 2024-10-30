@@ -124,7 +124,8 @@ public class StmtVisitor {
             world.visitMethod(callee);
             world.quickCallee(callee, container, stmt);
         }
-        SootWorld.v().getNeoGraph().createRelationWithMethods(container.getSootMethod(), callee);
+        // update neo4j callgraph
+        SootWorld.v().updateNeo4jRelation(container.getSootMethod(), callee);
     }
 
     /**
