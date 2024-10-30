@@ -29,7 +29,6 @@ public class SootWorld {
     private NeoGraph graph;
     private SootWorld() {
         graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456");
-        graph.clear();
     }
     public void readConfig(String config) {
         String path = String.format("src/main/resources/%s", config);

@@ -41,8 +41,6 @@ public class NeoGraph implements AutoCloseable {
             }).collect(Collectors.joining("\n"));
         Map methodMap = Map.of( "name", sm.getName(), "signature", sm.getSignature(), "transition", transitionStr, "sink", sinkStr);
         methodsToUpdate.add(methodMap);
-//        this.session.run("MATCH (m:Method {signature: $signature}) SET m.transition = $transition, m.sink = $sink",
-//                parameters("signature", sm.getSignature(), "transition", transitionStr, "sink", sinkStr));
     }
     public void createRelationWithMethods(SootMethod caller, SootMethod callee) {
         String fromName = caller.getName();
@@ -51,23 +49,13 @@ public class NeoGraph implements AutoCloseable {
         String toSignature = callee.getSignature();
         Map relation =  Map.of("fromName", fromName, "fromSignature", fromSignature, "toName", toName, "toSignature", toSignature);
         relationshipsToUpdate.add(relation);
-//        session.run(
-//                "MERGE (m1:Method {name: $fromName, signature: $fromSignature}) " +
-//                        "MERGE (m2:Method {name: $toName, signature: $toSignature}) " +
-//                        "MERGE (m1)-[r:CALL]->(m2)",
-//                parameters("fromName", fromName, "fromSignature", fromSignature, "toName", toName, "toSignature", toSignature)
-//        );
-    }
-
-    public void clear() {
-        try (Session session = driver.session()) {
-            session.run("MATCH (n) DETACH DELETE n");
-        }
     }
 
     public void flush() {
         try (Session session = driver.session()) {
             session.writeTransaction(tx -> {
+                // 删除原有数据
+                tx.run("MATCH (n) DETACH DELETE n");
                 // 批量更新节点 (Method)
                 String nodeUpdateQuery = """
                     UNWIND $methods AS method
