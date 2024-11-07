@@ -13,21 +13,26 @@ import java.util.stream.Collectors;
 import static org.neo4j.driver.Values.parameters;
 
 public class NeoGraph implements AutoCloseable {
-    private final Driver driver;
+    private Driver driver = null;
     private List<Map<String, Object>> methodsToUpdate = new ArrayList<>();
     List<Map<String, Object>> relationshipsToUpdate = new ArrayList<>();
-
-    public NeoGraph(String uri, String user, String password) {
-        driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
+    private boolean save;
+    public NeoGraph(String uri, String user, String password, boolean save) {
+        this.save = save;
+        if (save)
+            driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
     }
 
     @Override
     public void close() throws RuntimeException {
-        driver.close();
+        if (save)
+            driver.close();
     }
 
 
     public void updateMethodSummary(SpMethod spMethod) {
+        if (!save)
+            return;
         SootMethod sm = spMethod.getSootMethod();
         Summary summary = spMethod.getSummary();
         String transitionStr = summary.getTRansition().entrySet().stream().map(entry -> {
@@ -43,6 +48,8 @@ public class NeoGraph implements AutoCloseable {
         methodsToUpdate.add(methodMap);
     }
     public void createRelationWithMethods(SootMethod caller, SootMethod callee) {
+        if (!save)
+            return;
         String fromName = caller.getName();
         String fromSignature = caller.getSignature();
         String toName = callee.getName();
@@ -52,6 +59,8 @@ public class NeoGraph implements AutoCloseable {
     }
 
     public void flush() {
+        if (!save)
+            return;
         try (Session session = driver.session()) {
             session.writeTransaction(tx -> {
                 // 删除原有数据
@@ -78,7 +87,7 @@ public class NeoGraph implements AutoCloseable {
     }
 
     public static void main(String[] args) {
-        var graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456");
+        var graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456", true);
 //        graph.createMethodNode("main", "main()");
 //        graph.createMethodNode("test", "test()");
 //        graph.createRelation("main", "test");

@@ -121,11 +121,12 @@ public class StmtVisitor {
             world.addActiveEdge(callee, container);
             world.quickCallee(callee, container, stmt);
         } else {
+            world.getMethod(callee).caller = container;
             world.visitMethod(callee);
             world.quickCallee(callee, container, stmt);
         }
         // update neo4j callgraph
-        SootWorld.v().updateNeo4jRelation(container.getSootMethod(), callee);
+        world.updateNeo4jRelation(container.getSootMethod(), callee);
     }
 
     /**

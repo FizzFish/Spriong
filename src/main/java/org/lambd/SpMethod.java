@@ -14,6 +14,7 @@ public class SpMethod {
     private PointerToSet ptset;
     private int id = 0;
     private State state;
+    public SpMethod caller;
     public SpMethod(SootMethod sootMethod, int id) {
         this.id = id;
         this.name = sootMethod.getName();

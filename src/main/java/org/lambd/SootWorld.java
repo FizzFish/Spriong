@@ -1,9 +1,6 @@
 package org.lambd;
 
-import org.lambd.transition.NeoGraph;
-import org.lambd.transition.Summary;
-import org.lambd.transition.TaintConfig;
-import org.lambd.transition.Transition;
+import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
 import soot.*;
 import soot.jimple.*;
@@ -12,7 +9,9 @@ import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
 import soot.util.Chain;
 
+import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 1.通过soot分析所有相关的jar包
@@ -22,17 +21,27 @@ public class SootWorld {
     private SootMethod entryMethod = null;
     public SootClass entryClass = null;
     private static SootWorld world = null;
+    private Config config = null;
     private List<String> sourceInfo = new ArrayList<>();
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private Set<SpMethod> updateCallers = new HashSet<>();
     private NeoGraph graph;
     private SootWorld() {
-        graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456");
+        graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456", false);
     }
-    public void readConfig(String config) {
-        String path = String.format("src/main/resources/%s", config);
-        new TaintConfig(path).parse(methodRefMap, sourceInfo);
+    public void setConfig(Config config) {
+        this.config = config;
+        config.transfers.forEach(transfer -> {
+            methodRefMap.put(transfer.method,
+                    transfer.transitions.stream().
+                            map(t -> (Transition) t).collect(Collectors.toList()));
+        });
+        config.sinks.forEach(sink -> {
+            List<Transition> sinkList = new ArrayList<>();
+            sinkList.add(new SinkTrans(sink.method, sink.index, Weight.ONE));
+            methodRefMap.put(sink.method, sinkList);
+        });
     }
     public static SootWorld v() {
         if (world == null) {
@@ -43,52 +52,7 @@ public class SootWorld {
     public SootMethod getEntryMethod() {
         return entryMethod;
     }
-    public void initSoot(String jars) {
-        G.reset();
-        String sourceDir = "src/main/resources/";
-        String[] parts = jars.split(";");
-        List<String> inputClasses = new ArrayList<>();
-        for (int i = 0; i < parts.length; i++) {
-            parts[i] = sourceDir.concat(parts[i]);
-            inputClasses.addAll(ClassNameExtractor.extract(parts[i]));
-        }
-        String sootCp = String.format("src/main/resources/rt.jar;%s", String.join(";", parts));
-        Options.v().set_soot_classpath(sootCp);
 
-
-        Options.v().set_whole_program(true);
-        soot.options.Options.v().set_output_format(soot.options.Options.output_format_jimple);
-        soot.options.Options.v().set_app(true);
-        soot.options.Options.v().set_allow_phantom_refs(true);
-        soot.options.Options.v().set_no_bodies_for_excluded(true);
-        soot.options.Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*"));
-        Options.v().set_verbose(true);
-
-        for (String className : inputClasses) {
-            SootClass sootClass = Scene.v().loadClassAndSupport(className);
-            sootClass.setApplicationClass(); // 将类标记为应用程序类
-        }
-//
-        Scene.v().loadNecessaryClasses();
-//        soot.options.Options.v().setPhaseOption("cg.cha", "on");
-        soot.options.Options.v().setPhaseOption("cg", "all-reachable:true");
-//        Options.v().setPhaseOption("cg.spark", "on");
-//        Options.v().setPhaseOption("cg.spark", "rta:true");  // 开启RTA
-        // 禁用 SPARK
-        Options.v().setPhaseOption("cg.spark", "on:false");
-        Options.v().setPhaseOption("cg", "rta:true");
-//        Options.v().setPhaseOption("cg.spark", "on-fly-cg:false"); // 禁用即时调用图生成
-
-        soot.options.Options.v().setPhaseOption("jb", "use-original-names:true");
-//        soot.options.Options.v().setPhaseOption("jb.ls", "enabled:false");
-//        Options.v().set_prepend_classpath(false);
-        PackManager.v().runPacks();
-        // 遍历所有类和方法
-        Chain<SootClass> classes = Scene.v().getClasses();
-        System.out.println("Classes size: " + classes.size());
-        entryClass = Scene.v().loadClassAndSupport(sourceInfo.get(0));
-        entryMethod = Scene.v().getMethod(sourceInfo.get(1));
-    }
     List<SootMethod> visited = new ArrayList<>();
     public List<SootMethod> getVisited() {
         return visited;
@@ -180,36 +144,22 @@ public class SootWorld {
         updateCallers.add(caller);
 //        System.out.println("Added Element: " + caller);
     }
-    public void driverAnalysis(String jars) {
-
+    public void initSootEnv() {
         G.reset();
-        String sourceDir = "src/main/resources/";
-        List<String> jarPaths = new ArrayList<>();
-        for (String jar: jars.split(";"))
-            jarPaths.add(sourceDir.concat(jar));
-
-        String driverPath = "logtest/target/classes";
-        String driverClass = "org.test.Main";
-        String sootCp = String.format("src/main/resources/rt.jar;%s;%s", String.join(";", jarPaths), driverPath);
+        String sootCp = "src/main/resources/rt.jar;" + String.join(";", config.classPath);
         Options.v().set_soot_classpath(sootCp);
-
-        // 设置要分析的类
-        List<String> dir =  new ArrayList<>();
-        dir.add("logtest/target/classes");
-        dir.addAll(jarPaths);
-        Options.v().set_process_dir(dir);
+        Options.v().set_process_dir(config.classPath);
 
         // 设置 Soot 选项
 //        soot.options.Options.v().set_app(true);
         Options.v().set_whole_program(true);
         Options.v().set_allow_phantom_refs(true);
-        soot.options.Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*"));
+        soot.options.Options.v().set_exclude(excludeClasses());
         Options.v().set_no_bodies_for_excluded(true);
         Options.v().set_verbose(true);
 
         // 禁用 all-reachable 选项
         Options.v().setPhaseOption("cg", "all-reachable:false");
-
         // 选择调用图算法，例如 RTA
         Options.v().setPhaseOption("cg", "rta:true");
         Options.v().setPhaseOption("cg.cha", "on:false");
@@ -217,14 +167,15 @@ public class SootWorld {
 
         Options.v().set_output_format(Options.output_format_none);
 
-
         // 加载入口类
-        SootClass mainClass = Scene.v().loadClassAndSupport(driverClass);
-        Scene.v().setMainClass(mainClass);
-        // 设置入口点
+        entryClass = Scene.v().loadClassAndSupport(config.source.className);
+        entryMethod =  entryClass.getMethod(config.source.method);
+        if (config.source.method.equals("void main(java.lang.String[])")) {
+            Scene.v().setMainClass(entryClass);
+        }
         List<SootMethod> entryPoints = new ArrayList<>();
-
-        entryPoints.add(mainClass.getMethodByName("main"));
+        entryPoints.add(entryMethod);
+        // 设置入口点
         Scene.v().setEntryPoints(entryPoints);
 
         // 加载必要的类
@@ -234,8 +185,10 @@ public class SootWorld {
         PackManager.v().runPacks();
 
         System.out.println("Classes size: " + Scene.v().getClasses().size());
+    }
 
-        entryClass = mainClass;
-        entryMethod = mainClass.getMethodByName("main");
+    private List<String> excludeClasses() {
+        return Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*", "com.fasterxml.*",
+                "org.eclipse.*", "org.glassfish.*", "javassist.*");
     }
 }
