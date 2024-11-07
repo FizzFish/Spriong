@@ -65,8 +65,15 @@ public class StmtVisitor {
         boolean isSystemCallee = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
         SootWorld world = SootWorld.v();
         if (!world.quickMethodRef(signature, container, stmt)) {
-            if (isSystemCallee)
+            if (isSystemCallee) {
+                // 由于不进入真正的函数内部，因此需要为lhs创建一个Obj对象
+                if (stmt instanceof AssignStmt) {
+                    Type type = invoke.getMethodRef().getReturnType();
+                    if (type instanceof RefType rt)
+                        container.handleReturn(stmt, rt);
+                }
                 return;
+            }
             SpHierarchy cg = SpHierarchy.v();
             PointerToSet ptset = container.getPtset();
             // there are a lot of compromises here
