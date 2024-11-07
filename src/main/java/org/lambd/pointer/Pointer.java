@@ -1,5 +1,6 @@
 package org.lambd.pointer;
 
+import org.lambd.obj.ConstantObj;
 import org.lambd.obj.FormatObj;
 import org.lambd.obj.Obj;
 
@@ -19,6 +20,11 @@ public abstract class Pointer {
         return objs.stream()
                 .filter(obj -> obj instanceof FormatObj)
                 .map(obj -> (FormatObj) obj);
+    }
+    public Stream<ConstantObj> constantObjs() {
+        return objs.stream()
+                .filter(obj -> obj instanceof ConstantObj)
+                .map(obj -> (ConstantObj) obj);
     }
     public Stream<Obj> objs() {
         return objs.stream();

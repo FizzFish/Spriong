@@ -22,7 +22,6 @@ public class SootWorld {
     public SootClass entryClass = null;
     private static SootWorld world = null;
     private Config config = null;
-    private List<String> sourceInfo = new ArrayList<>();
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private Set<SpMethod> updateCallers = new HashSet<>();
@@ -33,9 +32,20 @@ public class SootWorld {
     public void setConfig(Config config) {
         this.config = config;
         config.transfers.forEach(transfer -> {
-            methodRefMap.put(transfer.method,
-                    transfer.transitions.stream().
-                            map(t -> (Transition) t).collect(Collectors.toList()));
+            List<Transition> transitions = new ArrayList<>();
+            for (Object obj : transfer.transitions) {
+                Map item = (Map) obj;
+                if (item.containsKey("from")) {
+                    Transition transition = new BaseTransition((Integer) item.get("from"),
+                            (Integer) item.get("to"), (Integer) item.get("kind"));
+                    transitions.add(transition);
+                } else if (item.containsKey("code")) {
+                    String code = (String) item.get("code");
+                    Transition transition = new LoadTransition(code);
+                    transitions.add(transition);
+                }
+            }
+            methodRefMap.put(transfer.method, transitions);
         });
         config.sinks.forEach(sink -> {
             List<Transition> sinkList = new ArrayList<>();

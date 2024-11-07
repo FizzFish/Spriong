@@ -1,9 +1,13 @@
 package org.lambd;
 
+import org.lambd.obj.ConstantObj;
+import org.lambd.obj.FormatObj;
 import org.lambd.obj.Obj;
 import org.lambd.obj.ObjManager;
+import org.lambd.pointer.InstanceField;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.pointer.VarPointer;
+import org.lambd.utils.Utils;
 import soot.*;
 import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -145,6 +149,9 @@ public class StmtVisitor {
     public void visit(AssignStmt stmt) {
         Value lhs = stmt.getLeftOp();
         Value rhs = stmt.getRightOp();
+        PointerToSet pts = container.getPtset();
+        boolean constant = rhs instanceof Constant;
+
         if (rhs instanceof InvokeExpr invoke) {
             handleInvoke(stmt, invoke);
             return;
@@ -154,8 +161,9 @@ public class StmtVisitor {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-                container.getPtset().addLocal(lvar, new Obj(newExpr.getType(), stmt));
+                pts.addLocal(lvar, new Obj(newExpr.getType(), stmt));
             } else if (rhs instanceof Constant) {
+                pts.addLocal(lvar, new ConstantObj(rhs.getType(), stmt, rhs));
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
                 if (fieldRef instanceof InstanceFieldRef instanceFieldRef)
@@ -192,8 +200,13 @@ public class StmtVisitor {
             }
         } else if (lhs instanceof ArrayRef arrayRef) {
             // x[i] = y
-            if (rhs instanceof Local rvar)
-                objManager.storeArray((Local) arrayRef.getBase(), rvar, stmt);
+            Local base = (Local) arrayRef.getBase();
+            if (rhs instanceof Local rvar) {
+                objManager.storeArray(base, rvar, stmt);
+            } else if (rhs instanceof Constant) {
+                ConstantObj constantObj = new ConstantObj(rhs.getType(), stmt, rhs);
+                pts.addArray(base, constantObj);
+            }
         } else {
             System.out.println("unsupported assignment lhs: " + stmt);
         }

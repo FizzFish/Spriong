@@ -6,6 +6,7 @@ import org.lambd.SpMethod;
 import org.lambd.obj.FormatObj;
 import org.lambd.obj.GenObj;
 import org.lambd.obj.Obj;
+import org.lambd.obj.ConstantObj;
 import org.lambd.transition.Summary;
 import org.lambd.transition.Weight;
 import org.lambd.utils.Utils;
@@ -50,6 +51,20 @@ public class PointerToSet {
     public void addLocal(Local var, Obj obj) {
         VarPointer vp = getVarPointer(var);
         vp.add(obj);
+    }
+    public void addArray(Local base, Obj obj) {
+        getLocalObjs(base).forEach(o -> {
+            getArrayIndex(o).add(obj);
+        });
+    }
+    public Set<Value> getArrayValue(Local base) {
+        return getLocalObjs(base).stream()
+                .flatMap(obj -> getArrayIndex(obj).constantObjs()) // 将每个 constantObjs 流合并
+                .map(ConstantObj::getVal)
+                .collect(Collectors.toSet());
+    }
+    public void addPointer(Pointer pointer, Obj obj) {
+        pointer.add(obj);
     }
 
     /**

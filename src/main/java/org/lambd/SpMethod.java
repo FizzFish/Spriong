@@ -60,6 +60,14 @@ public class SpMethod {
         if (fromVar instanceof Local l1 && toVar instanceof Local l2)
             ptset.update(l1, l2, w, stmt);
     }
+    public void handleLoadTransition(Stmt stmt) {
+        // packages(String[])($7)
+        Local arg0 = (Local) getParameter(stmt,0);
+        for (Value value: ptset.getArrayValue(arg0)) {
+            System.out.println(value);
+        }
+
+    }
 
     /**
      * get the var of arg index, and var.fields exists and can hold string
