@@ -7,6 +7,9 @@ import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
+import soot.tagkit.AnnotationStringElem;
+import soot.tagkit.Tag;
+import soot.tagkit.VisibilityAnnotationTag;
 import soot.util.Chain;
 
 import java.io.File;
@@ -150,6 +153,43 @@ public class SootWorld {
         System.out.println("Analyze end, update Neo4j database");
         graph.flush();
     }
+    public void analyzePackage(Set<String> packageName) {
+        List<SootClass> classes = new ArrayList<>();
+        packageName.forEach(pkg -> {
+            Scene.v().getApplicationClasses().forEach(sc -> {
+                if (sc.getPackageName().startsWith(pkg))
+                    classes.add(sc);
+
+            });
+        });
+        //        Scene.v().loadNecessaryClasses();
+        for (SootClass sc: classes) {
+            for (SootMethod sm : sc.getMethods()) {
+
+                VisibilityAnnotationTag tag = (VisibilityAnnotationTag) sm.getTag("VisibilityAnnotationTag");
+                SpMethod spMethod = getMethod(sm);
+                if (tag != null) {
+                    tag.getAnnotations().forEach(anno -> {
+                        String type = anno.getType();
+                        Map<String, String> elements = new HashMap<>();
+                        anno.getElems().forEach(e -> {
+                            String name = e.getName();
+                            if (e instanceof AnnotationStringElem se) {
+                                elements.put(name, se.getValue());
+                            }
+                        });
+                        Annotion annotion = new Annotion(type, elements);
+                        spMethod.addAnnotion(annotion);
+                    });
+                }
+                if (spMethod.checkAnnotion()) {
+                    System.out.println("visit POST&Path method: " +sm);
+                    visitMethod(sm);
+                }
+            }
+        }
+
+    }
     public void addCaller(SpMethod caller) {
         updateCallers.add(caller);
 //        System.out.println("Added Element: " + caller);
@@ -161,10 +201,11 @@ public class SootWorld {
         Options.v().set_process_dir(config.classPath);
 
         // 设置 Soot 选项
-//        soot.options.Options.v().set_app(true);
+        soot.options.Options.v().set_app(true);
         Options.v().set_whole_program(true);
         Options.v().set_allow_phantom_refs(true);
-        soot.options.Options.v().set_exclude(excludeClasses());
+        soot.options.Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*", "com.fasterxml.*",
+                "org.eclipse.*", "org.glassfish.*", "javassist.*"));
         Options.v().set_no_bodies_for_excluded(true);
         Options.v().set_verbose(true);
 
@@ -195,6 +236,11 @@ public class SootWorld {
         PackManager.v().runPacks();
 
         System.out.println("Classes size: " + Scene.v().getClasses().size());
+        System.out.println("Classes size: " + Scene.v().getApplicationClasses().size());
+//        for(SootClass sc: Scene.v().getClasses()) {
+//            if (sc.getName().contains("RestService"))
+//                System.out.println(sc.getMethods());
+//        }
     }
 
     private List<String> excludeClasses() {

@@ -6,12 +6,16 @@ import org.lambd.transition.*;
 import soot.*;
 import soot.jimple.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class SpMethod {
     private SootMethod sootMethod;
     public final String name;
     private Summary summary;
     private ObjManager manager;
     private PointerToSet ptset;
+    private List<Annotion> annotionList = new ArrayList<>();
     private int id = 0;
     private State state;
     public SpMethod caller;
@@ -26,6 +30,15 @@ public class SpMethod {
         state = State.VISITED;
     }
 
+    public void addAnnotion(Annotion an) {
+        annotionList.add(an);
+    }
+    public boolean checkAnnotion() {
+        List<String> conditions = annotionList.stream().map(an -> an.getAnnotationType()).toList();
+        if (conditions.contains("Ljavax/ws/rs/POST;") && conditions.contains("Ljavax/ws/rs/Path;"))
+            return true;
+        return false;
+    }
     private Value getParameter(Stmt stmt, int i) {
         if (stmt instanceof AssignStmt assignStmt) {
             if (i == -2)
@@ -63,10 +76,7 @@ public class SpMethod {
     public void handleLoadTransition(Stmt stmt) {
         // packages(String[])($7)
         Local arg0 = (Local) getParameter(stmt,0);
-        for (Value value: ptset.getArrayValue(arg0)) {
-            System.out.println(value);
-        }
-
+        SootWorld.v().analyzePackage(ptset.getArrayString(arg0));
     }
 
     /**
@@ -93,7 +103,7 @@ public class SpMethod {
         return sootMethod;
     }
     public String toString() {
-        return String.format("%s@%d", sootMethod, id);
+        return sootMethod.toString();
     }
     public ObjManager getManager() {
         return manager;

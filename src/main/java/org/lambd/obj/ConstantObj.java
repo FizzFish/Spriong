@@ -1,23 +1,28 @@
 package org.lambd.obj;
 
-import soot.SootField;
 import soot.Type;
-import soot.Value;
+import soot.jimple.Constant;
 import soot.jimple.Stmt;
+import soot.jimple.StringConstant;
 
 public class ConstantObj extends Obj {
-    private Value val;
+    private Constant constant;
 
-    public ConstantObj(Type type, Stmt stmt, Value val)
+    public ConstantObj(Type type, Stmt stmt, Constant constant)
     {
         super(type, stmt);
-        this.val = val;
+        this.constant = constant;
     }
-    public Value getVal() {
-        return val;
+    public Constant getVal() {
+        return constant;
+    }
+    public String getString() {
+        if (constant instanceof StringConstant sc)
+            return sc.value;
+        return constant.toString();
     }
     public String toString() {
-        return String.format("ConstantObj: %s", val);
+        return String.format("ConstantObj: %s", constant);
     }
     public boolean isFormat() {
         return false;

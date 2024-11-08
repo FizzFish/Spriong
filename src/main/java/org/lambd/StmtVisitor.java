@@ -70,7 +70,7 @@ public class StmtVisitor {
         SootWorld world = SootWorld.v();
         if (!world.quickMethodRef(signature, container, stmt)) {
             if (isSystemCallee) {
-                // 由于不进入真正的函数内部，因此需要为lhs创建一个Obj对象
+                // 由于不进入真正的函数内部，而且不在已有知识库中，因此需要为lhs创建一个Obj对象
                 if (stmt instanceof AssignStmt) {
                     Type type = invoke.getMethodRef().getReturnType();
                     if (type instanceof RefType rt)
@@ -150,7 +150,6 @@ public class StmtVisitor {
         Value lhs = stmt.getLeftOp();
         Value rhs = stmt.getRightOp();
         PointerToSet pts = container.getPtset();
-        boolean constant = rhs instanceof Constant;
 
         if (rhs instanceof InvokeExpr invoke) {
             handleInvoke(stmt, invoke);
@@ -162,8 +161,8 @@ public class StmtVisitor {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
                 pts.addLocal(lvar, new Obj(newExpr.getType(), stmt));
-            } else if (rhs instanceof Constant) {
-                pts.addLocal(lvar, new ConstantObj(rhs.getType(), stmt, rhs));
+            } else if (rhs instanceof Constant constant) {
+                pts.addLocal(lvar, new ConstantObj(rhs.getType(), stmt, constant));
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
                 if (fieldRef instanceof InstanceFieldRef instanceFieldRef)
@@ -203,8 +202,8 @@ public class StmtVisitor {
             Local base = (Local) arrayRef.getBase();
             if (rhs instanceof Local rvar) {
                 objManager.storeArray(base, rvar, stmt);
-            } else if (rhs instanceof Constant) {
-                ConstantObj constantObj = new ConstantObj(rhs.getType(), stmt, rhs);
+            } else if (rhs instanceof Constant constant) {
+                ConstantObj constantObj = new ConstantObj(rhs.getType(), stmt, constant);
                 pts.addArray(base, constantObj);
             }
         } else {

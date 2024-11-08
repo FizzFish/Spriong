@@ -57,10 +57,10 @@ public class PointerToSet {
             getArrayIndex(o).add(obj);
         });
     }
-    public Set<Value> getArrayValue(Local base) {
+    public Set<String> getArrayString(Local base) {
         return getLocalObjs(base).stream()
                 .flatMap(obj -> getArrayIndex(obj).constantObjs()) // 将每个 constantObjs 流合并
-                .map(ConstantObj::getVal)
+                .map(ConstantObj::getString)
                 .collect(Collectors.toSet());
     }
     public void addPointer(Pointer pointer, Obj obj) {
@@ -155,6 +155,9 @@ public class PointerToSet {
         if (typeStr.equals("java.lang.String") || typeStr.equals("java.lang.StringBuilder")
                 || typeStr.equals("java.lang.CharSequence")
                 || typeStr.equals("char[]"))
+            return true;
+        if (typeStr.startsWith("org.glassfish.jersey") || typeStr.startsWith("org.eclipse.jetty")
+                || typeStr.equals("javax.servlet.http.HttpServletRequest"))
             return true;
         return false;
     }
