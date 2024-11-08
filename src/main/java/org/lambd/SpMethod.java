@@ -8,6 +8,7 @@ import soot.jimple.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SpMethod {
     private SootMethod sootMethod;
@@ -30,14 +31,19 @@ public class SpMethod {
         state = State.VISITED;
     }
 
-    public void addAnnotion(Annotion an) {
+    public void addAnnotation(Annotion an) {
         annotionList.add(an);
     }
-    public boolean checkAnnotion() {
-        List<String> conditions = annotionList.stream().map(an -> an.getAnnotationType()).toList();
+    public boolean checkAnnotation() {
+        List<String> conditions = annotionList.stream().map(Annotion::getAnnotationType).toList();
         if (conditions.contains("Ljavax/ws/rs/POST;") && conditions.contains("Ljavax/ws/rs/Path;"))
             return true;
+        if (conditions.contains("Lorg/springframework/shell/standard/ShellMethod;"))
+            return true;
         return false;
+    }
+    public String getAnnotation() {
+        return annotionList.stream().map(Annotion::getAnnotationType).collect(Collectors.joining());
     }
     private Value getParameter(Stmt stmt, int i) {
         if (stmt instanceof AssignStmt assignStmt) {

@@ -4,17 +4,14 @@ import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
 import soot.*;
 import soot.jimple.*;
-import soot.jimple.toolkits.callgraph.CallGraph;
-import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
 import soot.tagkit.AnnotationStringElem;
+import soot.tagkit.AnnotationTag;
 import soot.tagkit.Tag;
 import soot.tagkit.VisibilityAnnotationTag;
-import soot.util.Chain;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 1.通过soot分析所有相关的jar包
@@ -27,6 +24,7 @@ public class SootWorld {
     private Config config = null;
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
+    private List<SootClass> shellComponents = new ArrayList<>();
     private Set<SpMethod> updateCallers = new HashSet<>();
     private NeoGraph graph;
     private SootWorld() {
@@ -153,16 +151,7 @@ public class SootWorld {
         System.out.println("Analyze end, update Neo4j database");
         graph.flush();
     }
-    public void analyzePackage(Set<String> packageName) {
-        List<SootClass> classes = new ArrayList<>();
-        packageName.forEach(pkg -> {
-            Scene.v().getApplicationClasses().forEach(sc -> {
-                if (sc.getPackageName().startsWith(pkg))
-                    classes.add(sc);
-
-            });
-        });
-        //        Scene.v().loadNecessaryClasses();
+    public void checkMethodAnnotation(List<SootClass> classes) {
         for (SootClass sc: classes) {
             for (SootMethod sm : sc.getMethods()) {
 
@@ -179,16 +168,54 @@ public class SootWorld {
                             }
                         });
                         Annotion annotion = new Annotion(type, elements);
-                        spMethod.addAnnotion(annotion);
+                        spMethod.addAnnotation(annotion);
                     });
                 }
-                if (spMethod.checkAnnotion()) {
-                    System.out.println("visit POST&Path method: " +sm);
+                if (spMethod.checkAnnotation()) {
+                    System.out.printf("entry method: %s, since %s annotation\n", sm.getName(), spMethod.getAnnotation());
                     visitMethod(sm);
                 }
             }
         }
+    }
+    public void analyzePackage(Set<String> packageName) {
+        List<SootClass> classes = new ArrayList<>();
+        packageName.forEach(pkg -> {
+            Scene.v().getApplicationClasses().forEach(sc -> {
+                if (sc.getPackageName().startsWith(pkg))
+                    classes.add(sc);
 
+            });
+        });
+        //        Scene.v().loadNecessaryClasses();
+        checkMethodAnnotation(classes);
+    }
+    public void checkShellComponents() {
+        List<SootClass> classes = new ArrayList<>();
+        for (SootClass sootClass: Scene.v().getApplicationClasses()) {
+            // 获取类的所有标签
+            List<Tag> tags = sootClass.getTags();
+            for (Tag tag : tags) {
+                // 检查是否为可见性注解标签
+                if (tag instanceof VisibilityAnnotationTag) {
+                    VisibilityAnnotationTag visibilityTag = (VisibilityAnnotationTag) tag;
+                    // 获取所有注解
+                    List<AnnotationTag> annotations = visibilityTag.getAnnotations();
+
+                    // 遍历注解
+                    for (AnnotationTag annotation : annotations) {
+                        // 获取注解的类型，格式为 L包名/类名;
+                        String annotationType = annotation.getType();
+
+                        // 检查是否为 @ShellComponent 注解
+                        if (annotationType.equals("Lorg/springframework/shell/standard/ShellComponent;")) {
+                            classes.add(sootClass);
+                        }
+                    }
+                }
+            }
+        }
+        checkMethodAnnotation(classes);
     }
     public void addCaller(SpMethod caller) {
         updateCallers.add(caller);
@@ -196,16 +223,30 @@ public class SootWorld {
     }
     public void initSootEnv() {
         G.reset();
-        String sootCp = "src/main/resources/rt.jar;" + String.join(";", config.classPath);
+        List<String> realPath = new ArrayList<>();
+        for (String clsPath : config.classPath) {
+            if (clsPath.contains("!")) {
+                try {
+                    realPath.add( ClassNameExtractor.extractBootInfClasses(clsPath));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                realPath.add(clsPath);
+            }
+        }
+
+        String sootCp = "src/main/resources/rt.jar;" + String.join(";", realPath);
+        System.out.println("classpath: " + sootCp);
         Options.v().set_soot_classpath(sootCp);
-        Options.v().set_process_dir(config.classPath);
+        // 这条语句要谨慎，加入后会全部分析
+        Options.v().set_process_dir(realPath);
 
         // 设置 Soot 选项
         soot.options.Options.v().set_app(true);
         Options.v().set_whole_program(true);
         Options.v().set_allow_phantom_refs(true);
-        soot.options.Options.v().set_exclude(Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*", "com.fasterxml.*",
-                "org.eclipse.*", "org.glassfish.*", "javassist.*"));
+        soot.options.Options.v().set_exclude(excludeClasses());
         Options.v().set_no_bodies_for_excluded(true);
         Options.v().set_verbose(true);
 
@@ -237,14 +278,12 @@ public class SootWorld {
 
         System.out.println("Classes size: " + Scene.v().getClasses().size());
         System.out.println("Classes size: " + Scene.v().getApplicationClasses().size());
-//        for(SootClass sc: Scene.v().getClasses()) {
-//            if (sc.getName().contains("RestService"))
-//                System.out.println(sc.getMethods());
-//        }
+        checkShellComponents();
     }
 
     private List<String> excludeClasses() {
         return Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*", "com.fasterxml.*",
-                "org.eclipse.*", "org.glassfish.*", "javassist.*");
+                "org.eclipse.*", "org.glassfish.*", "javassist.*",
+                "org.springframework.*");
     }
 }

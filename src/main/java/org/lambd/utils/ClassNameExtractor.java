@@ -8,10 +8,9 @@ import soot.util.Chain;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
@@ -77,5 +76,41 @@ public class ClassNameExtractor {
             throw new RuntimeException("Failed to read directory: " + dirPath, e);
         }
     }
+    public static String extractBootInfClasses(String jarPath) throws IOException {
+        String jar = jarPath.substring(0, jarPath.lastIndexOf("!"));
+        JarFile jarFile = new JarFile(jar);
+        String pathString = "src/main/resources/boot-inf-classes";
+        Path targetDir = Paths.get(pathString);
+        // 如果目录已存在，先删除
+        if (Files.exists(targetDir)) {
+            Files.walk(targetDir)
+                    .sorted((path1, path2) -> path2.compareTo(path1))  // 先删除子文件或子目录
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException e) {
+                            System.err.println("Failed to delete " + path + ": " + e.getMessage());
+                        }
+                    });
+        }
+        // 创建目录
+        Files.createDirectories(targetDir);
 
+        // 解压 BOOT-INF/classes 下的所有文件
+        Enumeration<JarEntry> entries = jarFile.entries();
+        while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            if (entry.getName().startsWith("BOOT-INF/classes/") && !entry.isDirectory()) {
+                File classFile = new File(targetDir.toFile(), entry.getName().substring("BOOT-INF/classes/".length()));
+                classFile.getParentFile().mkdirs();
+                try (InputStream input = jarFile.getInputStream(entry);
+                     FileOutputStream output = new FileOutputStream(classFile)) {
+                    input.transferTo(output);
+                }
+            }
+        }
+        jarFile.close();
+
+        return pathString;
+    }
 }
