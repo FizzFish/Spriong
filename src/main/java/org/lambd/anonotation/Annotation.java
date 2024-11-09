@@ -14,12 +14,12 @@ public class Annotation {
     private final AnnotationType annotationType;
     private final Map<String, String> elements;
 
-    public Annotation(String type, Map<String, String> elements) {
-        this.annotationType = AnnotationType.fromType(type);
+    public Annotation(AnnotationType type, Map<String, String> elements) {
+        this.annotationType = type;
         this.elements = elements;
     }
-    public String getAnnotationType() {
-        return annotationType.getType();
+    public AnnotationType getAnnotationType() {
+        return annotationType;
     }
 
     public void apply() {
@@ -32,8 +32,10 @@ public class Annotation {
         }
     }
     public static Annotation extractAnnotation(AnnotationTag tag) {
-        String type = tag.getType();
-        System.out.println("Annotation Type: " + type);
+        AnnotationType type = AnnotationType.fromType(tag.getType());
+        if (type == null)
+            return null;
+
         Map<String, String> elements = new HashMap<>();
         tag.getElems().forEach(e -> {
             String name = e.getName();

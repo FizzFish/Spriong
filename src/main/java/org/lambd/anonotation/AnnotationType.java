@@ -31,6 +31,27 @@ public enum AnnotationType {
             // 实现 Service 注解的特定行为
             System.out.println("Applying SpringBootApplication Annotation");
         }
+    },
+    POST("Ljavax/ws/rs/POST;") {
+        @Override
+        public void apply(Map<String, String> map) {
+            // 实现 Service 注解的特定行为
+            System.out.println("Applying SpringBootApplication Annotation");
+        }
+    },
+    PATH("Ljavax/ws/rs/Path;") {
+        @Override
+        public void apply(Map<String, String> map) {
+            // 实现 Service 注解的特定行为
+            System.out.println("Applying SpringBootApplication Annotation");
+        }
+    },
+    SHELLMETHOD("Lorg/springframework/shell/standard/ShellMethod;") {
+        @Override
+        public void apply(Map<String, String> map) {
+            // 实现 Service 注解的特定行为
+            System.out.println("Applying SpringBootApplication Annotation");
+        }
     };
 
     private final String type;

@@ -11,6 +11,7 @@ import soot.tagkit.AnnotationTag;
 import soot.tagkit.Tag;
 import soot.tagkit.VisibilityAnnotationTag;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -161,11 +162,13 @@ public class SootWorld {
                 if (tag != null) {
                     tag.getAnnotations().forEach(anno -> {
                         Annotation annotation = Annotation.extractAnnotation(anno);
-                        spMethod.addAnnotation(annotation);
+                        if (annotation != null)
+                            spMethod.addAnnotation(annotation);
                     });
                 }
                 if (spMethod.checkAnnotation()) {
-                    System.out.printf("entry method: %s, since %s annotation\n", sm.getName(), spMethod.getAnnotation());
+                    System.out.printf("entry method: %s, since %s annotation\n",
+                            sm.getName(), spMethod.getAnnotation());
                     visitMethod(sm);
                 }
             }
@@ -180,7 +183,7 @@ public class SootWorld {
 
             });
         });
-        //        Scene.v().loadNecessaryClasses();
+//        Scene.v().loadNecessaryClasses();
         checkMethodAnnotation(classes);
     }
     public void checkClassAnnotation() {
@@ -190,15 +193,15 @@ public class SootWorld {
             List<Tag> tags = sootClass.getTags();
             for (Tag tag : tags) {
                 // 检查是否为可见性注解标签
-                if (tag instanceof VisibilityAnnotationTag) {
-                    VisibilityAnnotationTag visibilityTag = (VisibilityAnnotationTag) tag;
+                if (tag instanceof VisibilityAnnotationTag visibilityTag) {
                     // 获取所有注解
                     List<AnnotationTag> annotations = visibilityTag.getAnnotations();
 
                     // 遍历注解
                     for (AnnotationTag anno : annotations) {
                         Annotation annotation = Annotation.extractAnnotation(anno);
-                        annotation.apply();
+                        if (annotation != null)
+                            annotation.apply();
                     }
                 }
             }
@@ -224,7 +227,8 @@ public class SootWorld {
             }
         }
 
-        String sootCp = "src/main/resources/rt.jar;" + String.join(";", realPath);
+        String Separator = File.pathSeparator;
+        String sootCp = "src/main/resources/rt.jar" + Separator + String.join(Separator, realPath);
         System.out.println("classpath: " + sootCp);
         Options.v().set_soot_classpath(sootCp);
         // 这条语句要谨慎，加入后会全部分析
