@@ -1,5 +1,6 @@
 package org.lambd;
 
+import org.lambd.anonotation.Annotation;
 import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
 import soot.*;
@@ -159,16 +160,8 @@ public class SootWorld {
                 SpMethod spMethod = getMethod(sm);
                 if (tag != null) {
                     tag.getAnnotations().forEach(anno -> {
-                        String type = anno.getType();
-                        Map<String, String> elements = new HashMap<>();
-                        anno.getElems().forEach(e -> {
-                            String name = e.getName();
-                            if (e instanceof AnnotationStringElem se) {
-                                elements.put(name, se.getValue());
-                            }
-                        });
-                        Annotion annotion = new Annotion(type, elements);
-                        spMethod.addAnnotation(annotion);
+                        Annotation annotation = Annotation.extractAnnotation(anno);
+                        spMethod.addAnnotation(annotation);
                     });
                 }
                 if (spMethod.checkAnnotation()) {
@@ -190,7 +183,7 @@ public class SootWorld {
         //        Scene.v().loadNecessaryClasses();
         checkMethodAnnotation(classes);
     }
-    public void checkShellComponents() {
+    public void checkClassAnnotation() {
         List<SootClass> classes = new ArrayList<>();
         for (SootClass sootClass: Scene.v().getApplicationClasses()) {
             // 获取类的所有标签
@@ -203,14 +196,9 @@ public class SootWorld {
                     List<AnnotationTag> annotations = visibilityTag.getAnnotations();
 
                     // 遍历注解
-                    for (AnnotationTag annotation : annotations) {
-                        // 获取注解的类型，格式为 L包名/类名;
-                        String annotationType = annotation.getType();
-
-                        // 检查是否为 @ShellComponent 注解
-                        if (annotationType.equals("Lorg/springframework/shell/standard/ShellComponent;")) {
-                            classes.add(sootClass);
-                        }
+                    for (AnnotationTag anno : annotations) {
+                        Annotation annotation = Annotation.extractAnnotation(anno);
+                        annotation.apply();
                     }
                 }
             }
@@ -278,7 +266,7 @@ public class SootWorld {
 
         System.out.println("Classes size: " + Scene.v().getClasses().size());
         System.out.println("Classes size: " + Scene.v().getApplicationClasses().size());
-        checkShellComponents();
+        checkClassAnnotation();
     }
 
     private List<String> excludeClasses() {

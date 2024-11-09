@@ -1,5 +1,6 @@
 package org.lambd;
 
+import org.lambd.anonotation.Annotation;
 import org.lambd.obj.*;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transition.*;
@@ -16,7 +17,7 @@ public class SpMethod {
     private Summary summary;
     private ObjManager manager;
     private PointerToSet ptset;
-    private List<Annotion> annotionList = new ArrayList<>();
+    private List<Annotation> annotionList = new ArrayList<>();
     private int id = 0;
     private State state;
     public SpMethod caller;
@@ -31,11 +32,11 @@ public class SpMethod {
         state = State.VISITED;
     }
 
-    public void addAnnotation(Annotion an) {
+    public void addAnnotation(Annotation an) {
         annotionList.add(an);
     }
     public boolean checkAnnotation() {
-        List<String> conditions = annotionList.stream().map(Annotion::getAnnotationType).toList();
+        List<String> conditions = annotionList.stream().map(Annotation::getAnnotationType).toList();
         if (conditions.contains("Ljavax/ws/rs/POST;") && conditions.contains("Ljavax/ws/rs/Path;"))
             return true;
         if (conditions.contains("Lorg/springframework/shell/standard/ShellMethod;"))
@@ -43,7 +44,7 @@ public class SpMethod {
         return false;
     }
     public String getAnnotation() {
-        return annotionList.stream().map(Annotion::getAnnotationType).collect(Collectors.joining());
+        return annotionList.stream().map(Annotation::getAnnotationType).collect(Collectors.joining());
     }
     private Value getParameter(Stmt stmt, int i) {
         if (stmt instanceof AssignStmt assignStmt) {
