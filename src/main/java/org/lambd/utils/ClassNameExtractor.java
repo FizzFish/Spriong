@@ -78,8 +78,9 @@ public class ClassNameExtractor {
     }
     public static String extractBootInfClasses(String jarPath) throws IOException {
         String jar = jarPath.substring(0, jarPath.lastIndexOf("!"));
+        String packageName = jarPath.substring(jarPath.lastIndexOf("!") + 1);
         JarFile jarFile = new JarFile(jar);
-        String pathString = "src/main/resources/boot-inf-classes";
+        String pathString = "src/main/resources/app-classes";
         Path targetDir = Paths.get(pathString);
         // 如果目录已存在，先删除
         if (Files.exists(targetDir)) {
@@ -96,12 +97,18 @@ public class ClassNameExtractor {
         // 创建目录
         Files.createDirectories(targetDir);
 
+        if (!packageName.endsWith("classes")) {
+            targetDir = Paths.get(pathString, packageName);
+            Files.createDirectories(targetDir);
+        }
+
+
         // 解压 BOOT-INF/classes 下的所有文件
         Enumeration<JarEntry> entries = jarFile.entries();
         while (entries.hasMoreElements()) {
             JarEntry entry = entries.nextElement();
-            if (entry.getName().startsWith("BOOT-INF/classes/") && !entry.isDirectory()) {
-                File classFile = new File(targetDir.toFile(), entry.getName().substring("BOOT-INF/classes/".length()));
+            if (entry.getName().startsWith(packageName) && !entry.isDirectory()) {
+                File classFile = new File(targetDir.toFile(), entry.getName().substring(packageName.length()));
                 classFile.getParentFile().mkdirs();
                 try (InputStream input = jarFile.getInputStream(entry);
                      FileOutputStream output = new FileOutputStream(classFile)) {

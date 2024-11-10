@@ -1,5 +1,5 @@
 classPath:
-  - src/main/resources/jetty-app.jar
+  - src/main/resources/jetty-app.jar!org/example
 source:
   { className: "org.example.MainApp", method: "void main(java.lang.String[])" }
 sinks:
