@@ -1,6 +1,7 @@
 package org.example;
 
 import org.example.services.DIYService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

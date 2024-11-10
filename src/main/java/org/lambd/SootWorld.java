@@ -1,6 +1,7 @@
 package org.lambd;
 
 import org.lambd.anonotation.Annotation;
+import org.lambd.anonotation.AutoWired;
 import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
 import soot.*;
@@ -26,7 +27,9 @@ public class SootWorld {
     private Config config = null;
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
+    private Map<SootClass, SpSootClass> classMap = new HashMap<>();
     private List<SootClass> shellComponents = new ArrayList<>();
+    private AutoWired autoWired = new AutoWired();
     private Set<SpMethod> updateCallers = new HashSet<>();
     private NeoGraph graph;
     private SootWorld() {
@@ -71,6 +74,9 @@ public class SootWorld {
         return visited;
     }
 
+    public AutoWired getAutoWired() {
+        return autoWired;
+    }
     public boolean quickMethodRef(String signature, SpMethod caller, Stmt stmt) {
         // 1. transition or sink not enter
         if (methodRefMap.containsKey(signature)) {
@@ -128,6 +134,9 @@ public class SootWorld {
     public SpMethod getMethod(SootMethod method) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method)));
     }
+    public SpSootClass getClass(SootClass cls) {
+        return classMap.computeIfAbsent(cls, k -> new SpSootClass(cls));
+    }
     public void statistics() {
         int varSize = 0, objSize = 0;
         for (SootMethod method : visited) {
@@ -166,11 +175,14 @@ public class SootWorld {
                             spMethod.addAnnotation(annotation);
                     });
                 }
-                if (spMethod.checkAnnotation()) {
-                    System.out.printf("entry method: %s, since %s annotation\n",
-                            sm.getName(), spMethod.getAnnotation());
-                    visitMethod(sm);
+                for (Annotation ann: spMethod.getAnnotionList()) {
+                    ann.apply().accept(sm);
                 }
+//                if (spMethod.checkAnnotation()) {
+//                    System.out.printf("entry method: %s, since %s annotation\n",
+//                            sm.getName(), spMethod.getAnnotation());
+//                    visitMethod(sm);
+//                }
             }
         }
     }
@@ -184,12 +196,14 @@ public class SootWorld {
             });
         });
 //        Scene.v().loadNecessaryClasses();
+        System.out.println(classes);
         checkMethodAnnotation(classes);
     }
     public void checkClassAnnotation() {
         List<SootClass> classes = new ArrayList<>();
         for (SootClass sootClass: Scene.v().getApplicationClasses()) {
             // 获取类的所有标签
+            SpSootClass spSootClass = getClass(sootClass);
             List<Tag> tags = sootClass.getTags();
             for (Tag tag : tags) {
                 // 检查是否为可见性注解标签
@@ -200,8 +214,10 @@ public class SootWorld {
                     // 遍历注解
                     for (AnnotationTag anno : annotations) {
                         Annotation annotation = Annotation.extractAnnotation(anno);
-                        if (annotation != null)
-                            annotation.apply();
+                        if (annotation != null) {
+                            spSootClass.addAnnotation(annotation);
+                            annotation.apply().accept(sootClass);
+                        }
                     }
                 }
             }

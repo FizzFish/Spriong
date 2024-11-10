@@ -6,6 +6,7 @@ import soot.tagkit.VisibilityAnnotationTag;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  *
@@ -22,14 +23,8 @@ public class Annotation {
         return annotationType;
     }
 
-    public void apply() {
-        if (annotationType != null) {
-            annotationType.apply(elements);
-
-        } else {
-            // 处理未知的类型
-            System.out.println("Unknown Annotation Type");
-        }
+    public Consumer apply() {
+        return annotationType.apply();
     }
     public static Annotation extractAnnotation(AnnotationTag tag) {
         AnnotationType type = AnnotationType.fromType(tag.getType());

@@ -7,6 +7,7 @@ import org.lambd.pointer.PointerToSet;
 import org.lambd.transition.*;
 import soot.*;
 import soot.jimple.*;
+import soot.tagkit.VisibilityAnnotationTag;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,11 +37,16 @@ public class SpMethod {
     public void addAnnotation(Annotation an) {
         annotionList.add(an);
     }
+    public List<Annotation> getAnnotionList() {
+        return annotionList;
+    }
     public boolean checkAnnotation() {
         List<AnnotationType> conditions = annotionList.stream().map(Annotation::getAnnotationType).toList();
         if (conditions.contains(AnnotationType.POST) && conditions.contains(AnnotationType.PATH))
             return true;
         if (conditions.contains(AnnotationType.SHELLMETHOD))
+            return true;
+        if (conditions.contains(AnnotationType.AUTOWIRED))
             return true;
         return false;
     }
@@ -106,6 +112,16 @@ public class SpMethod {
         Value lhs = getParameter(stmt, -2);
         if (lhs instanceof Local l)
             ptset.updateLhs(l, type, stmt);
+    }
+    public void analyzeAnnotation() {
+        VisibilityAnnotationTag tag = (VisibilityAnnotationTag) sootMethod.getTag("VisibilityAnnotationTag");
+        if (tag != null) {
+            tag.getAnnotations().forEach(anno -> {
+                Annotation annotation = Annotation.extractAnnotation(anno);
+                if (annotation != null)
+                    addAnnotation(annotation);
+            });
+        }
     }
     public String getName() {
         return name;

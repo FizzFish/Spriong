@@ -1,66 +1,95 @@
 package org.lambd.anonotation;
 
+import org.lambd.SootWorld;
+import soot.SootClass;
+import soot.SootMethod;
+
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public enum AnnotationType {
-    COMPONENT("Lorg.springframework.stereotype.Component;") {
+    // 1. addbean 2. __init__ other bean
+    COMPONENT("Lorg.springframework.stereotype.Component;", true) {
         @Override
-        public void apply(Map<String, String> map) {
+        public Consumer apply() {
             // 实现 Component 注解的特定行为
-            System.out.println("Applying Component Annotation");
+            return addBean.andThen(initMethod);
         }
     },
-    SHELLCOMPONENT("Lorg/springframework/shell/standard/ShellComponent;") {
+    SERVICE("Lorg.springframework.stereotype.Service;", true) {
         @Override
-        public void apply(Map<String, String> map) {
+        public Consumer apply() {
             // 实现 Component 注解的特定行为
-            System.out.println("Applying Shell Component Annotation");
+            return addBean.andThen(initMethod);
         }
     },
-    SERVICE("Lorg.springframework.stereotype.Service;") {
+    SpringBootApplication("Lorg/springframework/boot/autoconfigure/SpringBootApplication;", true) {
         @Override
-        public void apply(Map<String, String> map) {
+        public Consumer apply() {
             // 实现 Service 注解的特定行为
-            System.out.println("Applying Service Annotation");
+//            String packages = map.get("scanBasePackages");
+            return nothing;
         }
     },
-    //Lorg/springframework/boot/autoconfigure/SpringBootApplication;
-    SpringBootApplication("Lorg/springframework/boot/autoconfigure/SpringBootApplication;") {
+    SHELLCOMPONENT("Lorg/springframework/shell/standard/ShellComponent;", true) {
         @Override
-        public void apply(Map<String, String> map) {
-            // 实现 Service 注解的特定行为
-            System.out.println("Applying SpringBootApplication Annotation");
+        public Consumer apply() {
+            // 实现 Component 注解的特定行为
+            return nothing;
         }
     },
-    POST("Ljavax/ws/rs/POST;") {
+    POST("Ljavax/ws/rs/POST;", false) {
         @Override
-        public void apply(Map<String, String> map) {
-            // 实现 Service 注解的特定行为
-            System.out.println("Applying SpringBootApplication Annotation");
+        public Consumer apply() {
+            // 实现 Component 注解的特定行为
+            return entry;
         }
     },
-    PATH("Ljavax/ws/rs/Path;") {
+    PATH("Ljavax/ws/rs/Path;", false) {
         @Override
-        public void apply(Map<String, String> map) {
-            // 实现 Service 注解的特定行为
-            System.out.println("Applying SpringBootApplication Annotation");
+        public Consumer apply() {
+            // 实现 Component 注解的特定行为
+            return nothing;
         }
     },
-    SHELLMETHOD("Lorg/springframework/shell/standard/ShellMethod;") {
+    AUTOWIRED("Lorg.springframework.beans.factory.annotation.Autowired;", false) {
         @Override
-        public void apply(Map<String, String> map) {
-            // 实现 Service 注解的特定行为
-            System.out.println("Applying SpringBootApplication Annotation");
+        public Consumer apply() {
+            // 实现 Component 注解的特定行为
+            return entry;
+        }
+    },
+    SHELLMETHOD("Lorg/springframework/shell/standard/ShellMethod;", false) {
+        @Override
+        public Consumer apply() {
+            // 实现 Component 注解的特定行为
+            return entry;
         }
     };
 
     private final String type;
-
-    AnnotationType(String type) {
+    private final boolean classOrMethod;
+    private static final Consumer<SootClass> addBean = sc -> {
+        SootWorld.v().getAutoWired().addBean(sc.getType(), sc);
+    };
+    private static final Consumer<SootClass> initMethod = sc -> {
+        SootWorld.v().getAutoWired().wired(sc);
+    };
+    private static final Consumer<SootMethod> entry = sm -> {
+        SootWorld.v().visitMethod(sm);
+    };
+    private static final Consumer nothing = s -> {};
+    AnnotationType(String type, boolean classOrMethod) {
         this.type = type;
+        this.classOrMethod = classOrMethod;
     }
 
-    public abstract void apply(Map<String, String> map);
+    public Consumer apply() {
+        return nothing;
+    };
 
     public String getType() {
         return type;
