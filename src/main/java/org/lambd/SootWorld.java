@@ -80,11 +80,6 @@ public class SootWorld {
         }
         return false;
     }
-    private Map<SootMethod, Integer> calleeMap = new HashMap<>();
-    private int calleeID = 0;
-    public int getCalleeID(SootMethod callee) {
-        return calleeMap.computeIfAbsent(callee, k -> calleeID ++);
-    }
     public boolean quickCallee(SootMethod callee, SpMethod caller, Stmt stmt) {
         // 1. transition or sink not enter
         Summary summary = getMethod(callee).getSummary();
@@ -122,7 +117,7 @@ public class SootWorld {
         graph.createRelationWithMethods(caller, callee);
     }
     public SpMethod getMethod(SootMethod method) {
-        return methodMap.computeIfAbsent(method, k -> new SpMethod(method, getCalleeID(method)));
+        return methodMap.computeIfAbsent(method, k -> new SpMethod(method));
     }
     public SpSootClass getClass(SootClass cls) {
         return classMap.computeIfAbsent(cls, k -> new SpSootClass(cls));

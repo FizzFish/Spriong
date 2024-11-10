@@ -21,16 +21,13 @@ public class SpMethod implements Wrapper {
     private ObjManager manager;
     private PointerToSet ptset;
     private List<Annotation> annotionList = new ArrayList<>();
-    private int id = 0;
     private State state;
     public SpMethod caller;
-    public SpMethod(SootMethod sootMethod, int id) {
-        this.id = id;
+    public SpMethod(SootMethod sootMethod) {
         this.name = sootMethod.getName();
         this.sootMethod = sootMethod;
         summary = new Summary(this);
-        SootClass sc = id == 0 ? SootWorld.v().entryClass : null;
-        ptset = new PointerToSet(this, sc);
+        ptset = new PointerToSet(this);
         manager = new OneObjManager(this, ptset);
         state = State.VISITED;
     }

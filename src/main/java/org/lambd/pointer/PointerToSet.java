@@ -22,7 +22,7 @@ public class PointerToSet {
     private Map<Obj, ArrayIndex> arrays = new HashMap<>();
     private Map<SootField, StaticField> statics = new HashMap<>();
     private SpMethod container;
-    public PointerToSet(SpMethod container, SootClass sc) {
+    public PointerToSet(SpMethod container) {
         this.container = container;
         Body body;
         try {
@@ -39,7 +39,7 @@ public class PointerToSet {
         }
         if (!container.getSootMethod().isStatic()) {
             Local thisVar = body.getThisLocal();
-            Type type = sc == null ? thisVar.getType() : sc.getType();
+            Type type = container.getSootMethod().getDeclaringClass().getType();
             FormatObj obj = new FormatObj(type, null, -1);
             addLocal(thisVar, obj);
         }
