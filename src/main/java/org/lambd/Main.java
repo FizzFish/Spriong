@@ -20,8 +20,8 @@ public class Main {
         Config config = loadConfig(configFile);
         sootWorld.setConfig(config);
         sootWorld.initSootEnv();
-        SootMethod entryMethod = sootWorld.getEntryMethod();
-        sootWorld.analyze(entryMethod);
+
+        sootWorld.analyze();
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         System.out.println("Execution time: " + duration + " milliseconds");

@@ -1,10 +1,20 @@
 package org.lambd.anonotation;
 
+import org.lambd.SootWorld;
+import org.lambd.SpMethod;
+import org.lambd.wrapper.SpSootClass;
+import org.lambd.wrapper.Wrapper;
+import soot.Scene;
+import soot.SootClass;
+import soot.SootMethod;
 import soot.tagkit.AnnotationStringElem;
 import soot.tagkit.AnnotationTag;
+import soot.tagkit.Tag;
 import soot.tagkit.VisibilityAnnotationTag;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -23,8 +33,8 @@ public class Annotation {
         return annotationType;
     }
 
-    public Consumer apply() {
-        return annotationType.apply();
+    public void apply(Wrapper wrapper) {
+        annotationType.apply(wrapper);
     }
     public static Annotation extractAnnotation(AnnotationTag tag) {
         AnnotationType type = AnnotationType.fromType(tag.getType());
@@ -39,5 +49,15 @@ public class Annotation {
             }
         });
         return new Annotation(type, elements);
+    }
+
+    public static boolean hasAnnotation(SootMethod sm, AnnotationType type) {
+        VisibilityAnnotationTag tag = (VisibilityAnnotationTag) sm.getTag("VisibilityAnnotationTag");
+        if (tag == null)
+            return false;
+        for (AnnotationTag anno : tag.getAnnotations())
+            if (anno.getType().equals(type.getType()))
+                return true;
+        return false;
     }
 }

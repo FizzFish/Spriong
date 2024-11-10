@@ -1,16 +1,12 @@
 package org.lambd;
 
-import org.lambd.anonotation.Annotation;
 import org.lambd.anonotation.AutoWired;
 import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
+import org.lambd.wrapper.SpSootClass;
 import soot.*;
 import soot.jimple.*;
 import soot.options.Options;
-import soot.tagkit.AnnotationStringElem;
-import soot.tagkit.AnnotationTag;
-import soot.tagkit.Tag;
-import soot.tagkit.VisibilityAnnotationTag;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +24,7 @@ public class SootWorld {
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private Map<SootClass, SpSootClass> classMap = new HashMap<>();
-    private List<SootClass> shellComponents = new ArrayList<>();
+    private Queue<SootMethod> entryPoints = new LinkedList<>();
     private AutoWired autoWired = new AutoWired();
     private Set<SpMethod> updateCallers = new HashSet<>();
     private NeoGraph graph;
@@ -64,9 +60,6 @@ public class SootWorld {
             world = new SootWorld();
         }
         return world;
-    }
-    public SootMethod getEntryMethod() {
-        return entryMethod;
     }
 
     List<SootMethod> visited = new ArrayList<>();
@@ -113,10 +106,7 @@ public class SootWorld {
         }
     }
     public void visitMethod(SootMethod method) {
-        visitMethod(method, false);
-    }
-    public void visitMethod(SootMethod method, boolean must) {
-        if (!must && (!method.getDeclaringClass().isApplicationClass() || visited.contains(method)))
+        if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
             return;
         visited.add(method);
         SpMethod spMethod = getMethod(method);
@@ -146,8 +136,12 @@ public class SootWorld {
         System.out.printf("there are %d functions, %d vars, %d objs\n",
                 visited.size(), varSize, objSize);
     }
-    public void analyze(SootMethod entry) {
-        visitMethod(entry);
+    public void analyze() {
+        while (!entryPoints.isEmpty()) {
+            SootMethod sm = entryPoints.poll();
+            System.out.println("Analyze Entry: " + sm);
+            visitMethod(sm);
+        }
 //        if(!updateCallers.isEmpty()) {
 //            Set<SpMethod> copySet = new HashSet<>(updateCallers);
 //            updateCallers.clear();
@@ -162,30 +156,7 @@ public class SootWorld {
         System.out.println("Analyze end, update Neo4j database");
         graph.flush();
     }
-    public void checkMethodAnnotation(List<SootClass> classes) {
-        for (SootClass sc: classes) {
-            for (SootMethod sm : sc.getMethods()) {
 
-                VisibilityAnnotationTag tag = (VisibilityAnnotationTag) sm.getTag("VisibilityAnnotationTag");
-                SpMethod spMethod = getMethod(sm);
-                if (tag != null) {
-                    tag.getAnnotations().forEach(anno -> {
-                        Annotation annotation = Annotation.extractAnnotation(anno);
-                        if (annotation != null)
-                            spMethod.addAnnotation(annotation);
-                    });
-                }
-                for (Annotation ann: spMethod.getAnnotionList()) {
-                    ann.apply().accept(sm);
-                }
-//                if (spMethod.checkAnnotation()) {
-//                    System.out.printf("entry method: %s, since %s annotation\n",
-//                            sm.getName(), spMethod.getAnnotation());
-//                    visitMethod(sm);
-//                }
-            }
-        }
-    }
     public void analyzePackage(Set<String> packageName) {
         List<SootClass> classes = new ArrayList<>();
         packageName.forEach(pkg -> {
@@ -197,33 +168,10 @@ public class SootWorld {
         });
 //        Scene.v().loadNecessaryClasses();
         System.out.println(classes);
-        checkMethodAnnotation(classes);
+        for (SootClass sc: classes)
+            autoWired.scanMethodInClass(sc);
     }
-    public void checkClassAnnotation() {
-        List<SootClass> classes = new ArrayList<>();
-        for (SootClass sootClass: Scene.v().getApplicationClasses()) {
-            // 获取类的所有标签
-            SpSootClass spSootClass = getClass(sootClass);
-            List<Tag> tags = sootClass.getTags();
-            for (Tag tag : tags) {
-                // 检查是否为可见性注解标签
-                if (tag instanceof VisibilityAnnotationTag visibilityTag) {
-                    // 获取所有注解
-                    List<AnnotationTag> annotations = visibilityTag.getAnnotations();
 
-                    // 遍历注解
-                    for (AnnotationTag anno : annotations) {
-                        Annotation annotation = Annotation.extractAnnotation(anno);
-                        if (annotation != null) {
-                            spSootClass.addAnnotation(annotation);
-                            annotation.apply().accept(sootClass);
-                        }
-                    }
-                }
-            }
-        }
-        checkMethodAnnotation(classes);
-    }
     public void addCaller(SpMethod caller) {
         updateCallers.add(caller);
 //        System.out.println("Added Element: " + caller);
@@ -273,22 +221,26 @@ public class SootWorld {
         if (config.source.method.equals("void main(java.lang.String[])")) {
             Scene.v().setMainClass(entryClass);
         }
-        List<SootMethod> entryPoints = new ArrayList<>();
         entryPoints.add(entryMethod);
-        // 设置入口点
-        Scene.v().setEntryPoints(entryPoints);
 
         // 加载必要的类
         Scene.v().loadNecessaryClasses();
+        autoWired.scanSpring();
+        // 设置入口点
+        System.out.println("Entry points: " + entryPoints);
+        Scene.v().setEntryPoints(new ArrayList<>(entryPoints));
 
         // 运行 Soot
         PackManager.v().runPacks();
 
         System.out.println("Classes size: " + Scene.v().getClasses().size());
         System.out.println("Classes size: " + Scene.v().getApplicationClasses().size());
-        checkClassAnnotation();
+
     }
 
+    public void addEntryPoint(SootMethod method) {
+        entryPoints.add(method);
+    }
     private List<String> excludeClasses() {
         return Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*", "com.fasterxml.*",
                 "org.eclipse.*", "org.glassfish.*", "javassist.*",

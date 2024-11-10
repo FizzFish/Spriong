@@ -5,6 +5,7 @@ import org.lambd.anonotation.AnnotationType;
 import org.lambd.obj.*;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transition.*;
+import org.lambd.wrapper.Wrapper;
 import soot.*;
 import soot.jimple.*;
 import soot.tagkit.VisibilityAnnotationTag;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class SpMethod {
+public class SpMethod implements Wrapper {
     private SootMethod sootMethod;
     public final String name;
     private Summary summary;
