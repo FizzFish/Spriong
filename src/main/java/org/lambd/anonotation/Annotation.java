@@ -34,7 +34,7 @@ public class Annotation {
     }
 
     public void apply(Wrapper wrapper) {
-        annotationType.apply(wrapper);
+        annotationType.apply(wrapper, elements);
     }
     public static Annotation extractAnnotation(AnnotationTag tag) {
         AnnotationType type = AnnotationType.fromType(tag.getType());
