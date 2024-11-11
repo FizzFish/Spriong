@@ -3,12 +3,11 @@ package org.lambd.anonotation;
 import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.wrapper.SpSootClass;
+import org.lambd.wrapper.Wrapper;
 import soot.RefType;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
-import soot.tagkit.AnnotationTag;
-import soot.tagkit.Tag;
 import soot.tagkit.VisibilityAnnotationTag;
 
 import java.util.ArrayList;
@@ -32,8 +31,10 @@ public class AutoWired {
         for (SootMethod method : ssc.getSootClass().getMethods()) {
             if (method.isConstructor()) {
                 constructors.add(method);
+                /**
                 if (Annotation.hasAnnotation(method, AnnotationType.AUTOWIRED))
                     SootWorld.v().addEntryPoint(method);
+                 */
             }
         }
         if (constructors.size() == 1) {
@@ -47,25 +48,30 @@ public class AutoWired {
             }
         }
     }
-    public void scanSpring() {
-//        System.out.println(Scene.v().getApplicationClasses());
+    public void scanAppClasses() {
+        SootWorld sw = SootWorld.v();
         for (SootClass sootClass: Scene.v().getApplicationClasses()) {
             SpSootClass spSootClass = SootWorld.v().getClass(sootClass);
-            List<Tag> tags = sootClass.getTags();
-            for (Tag tag : tags) {
-                if (tag instanceof VisibilityAnnotationTag visibilityTag) {
-                    List<AnnotationTag> annotations = visibilityTag.getAnnotations();
-
-                    // 遍历注解
-                    for (AnnotationTag anno : annotations) {
-                        Annotation annotation = Annotation.extractAnnotation(anno);
-                        if (annotation != null) {
-                            spSootClass.addAnnotation(annotation);
-                            annotation.apply(spSootClass);
-                        }
-                    }
+            analyzeAnnotation(spSootClass);
+            sootClass.getMethods().forEach(sm -> {
+                analyzeAnnotation(sw.getMethod(sm));
+            });
+        }
+    }
+    private void analyzeAnnotation(Wrapper wrapper) {
+        VisibilityAnnotationTag tag = null;
+        if (wrapper instanceof SpSootClass ssc)
+            tag = (VisibilityAnnotationTag) ssc.getSootClass().getTag("VisibilityAnnotationTag");
+        else if (wrapper instanceof SpMethod sm)
+            tag = (VisibilityAnnotationTag) sm.getSootMethod().getTag("VisibilityAnnotationTag");
+        if (tag != null) {
+            tag.getAnnotations().forEach(anno -> {
+                Annotation annotation = Annotation.extractAnnotation(anno);
+                if (annotation != null) {
+                    wrapper.addAnnotation(annotation);
+                    annotation.apply(wrapper);
                 }
-            }
+            });
         }
     }
     public void scanMethodInClass(SootClass sc) {

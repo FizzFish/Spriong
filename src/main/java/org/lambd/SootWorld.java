@@ -9,7 +9,6 @@ import soot.jimple.*;
 import soot.options.Options;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -153,6 +152,8 @@ public class SootWorld {
     }
 
     public void analyzePackage(Set<String> packageName) {
+        //analyze all app classes at beginning
+        /**
         List<SootClass> classes = new ArrayList<>();
         packageName.forEach(pkg -> {
             Scene.v().getApplicationClasses().forEach(sc -> {
@@ -165,6 +166,7 @@ public class SootWorld {
         System.out.println(classes);
         for (SootClass sc: classes)
             autoWired.scanMethodInClass(sc);
+         */
     }
 
     public void addCaller(SpMethod caller) {
@@ -219,7 +221,7 @@ public class SootWorld {
 
         // 加载必要的类
         Scene.v().loadNecessaryClasses();
-        autoWired.scanSpring();
+        autoWired.scanAppClasses();
         // 设置入口点
         System.out.println("Entry points: " + entryPoints);
         Scene.v().setEntryPoints(new ArrayList<>(entryPoints));

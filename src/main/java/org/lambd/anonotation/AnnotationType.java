@@ -38,7 +38,7 @@ public enum AnnotationType {
     SHELLCOMPONENT("Lorg/springframework/shell/standard/ShellComponent;", true) {
         @Override
         public void apply(Wrapper wrapper, Map<String, String> elements) {
-            scanShellMethod((SpSootClass) wrapper);
+//            scanShellMethod((SpSootClass) wrapper);
         }
     },
     POST("Ljavax/ws/rs/POST;", false) {
