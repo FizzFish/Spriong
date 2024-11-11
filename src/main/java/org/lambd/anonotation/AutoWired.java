@@ -62,14 +62,12 @@ public class AutoWired {
             tag = (VisibilityAnnotationTag) ((SootClass) obj).getTag("VisibilityAnnotationTag");
         else
             tag = (VisibilityAnnotationTag) ((SootMethod) obj).getTag("VisibilityAnnotationTag");
-        Wrapper wrapper = classOrMethod ? sw.getClass((SootClass) obj) : sw.getMethod((SootMethod) obj);
         if (tag != null) {
             tag.getAnnotations().forEach(anno -> {
                 Annotation annotation = Annotation.extractAnnotation(anno);
                 if (annotation != null) {
-//                    Wrapper wrapper = classOrMethod ? sw.getClass((SootClass) obj) : sw.getMethod((SootMethod) obj);
+                    Wrapper wrapper = classOrMethod ? sw.getClass((SootClass) obj) : sw.getMethod((SootMethod) obj);
                     wrapper.addAnnotation(annotation);
-                    System.out.println("Annotation: " + annotation);
                     annotation.apply(wrapper);
                 }
             });
