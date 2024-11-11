@@ -4,10 +4,7 @@ import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.wrapper.SpSootClass;
 import org.lambd.wrapper.Wrapper;
-import soot.RefType;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootMethod;
+import soot.*;
 import soot.tagkit.VisibilityAnnotationTag;
 
 import java.util.ArrayList;
@@ -17,6 +14,7 @@ import java.util.Map;
 
 public class AutoWired {
     private Map<RefType, SpSootClass> autowrireds = new HashMap<>();
+    private Map<SootClass, List<String>> services = new HashMap<>();
     public void addBean(RefType type, SpSootClass cls)
     {
         autowrireds.put(type, cls);
@@ -41,6 +39,10 @@ public class AutoWired {
             SootWorld.v().addEntryPoint(constructors.get(0));
         }
     }
+    public void addService(SootClass sc, String service)
+    {
+        services.computeIfAbsent(sc, k -> new ArrayList<>()).add(service);
+    }
     public void scanShellMethod(SpSootClass ssc) {
         for (SootMethod method : ssc.getSootClass().getMethods()) {
             if (Annotation.hasAnnotation(method, AnnotationType.SHELLMETHOD)) {
@@ -53,14 +55,36 @@ public class AutoWired {
             analyzeAnnotation(sc);
             sc.getMethods().forEach(this::analyzeAnnotation);
         }
+        for (SootClass sc: Scene.v().getApplicationClasses()
+            checkInterface(sc);
+    }
+    private void checkInterface(SootClass sc) {
+        String bindService = "io.grpc.BindableService";
+        // check if contains grpc interface
+        if (sc.getInterfaces().stream().map(SootClass::getName).noneMatch(bindService::equals))
+            return;
+        if (sc.isInterface())
+            return;
+        SootClass outerClass = sc.getOuterClass();
+        List<String> serivceMethods = services.get(outerClass);
+
+        FastHierarchy fastHierarchy = Scene.v().getFastHierarchy();
+        SootWorld sw = SootWorld.v();
+        for (SootClass subClass: fastHierarchy.getSubclassesOf(sc)) {
+            for (SootMethod sm: subClass.getMethods())
+                if (serivceMethods.contains(sm.getName()))
+                    sw.addEntryPoint(sm);
+        }
     }
     private void analyzeAnnotation(Object obj) {
         VisibilityAnnotationTag tag = null;
         SootWorld sw = SootWorld.v();
         boolean classOrMethod = obj instanceof SootClass;
-        if (classOrMethod)
+        if (classOrMethod) {
             tag = (VisibilityAnnotationTag) ((SootClass) obj).getTag("VisibilityAnnotationTag");
-        else
+            SpSootClass ssc = sw.getClass((SootClass) obj);
+            ssc.scan();
+        } else
             tag = (VisibilityAnnotationTag) ((SootMethod) obj).getTag("VisibilityAnnotationTag");
         if (tag != null) {
             tag.getAnnotations().forEach(anno -> {

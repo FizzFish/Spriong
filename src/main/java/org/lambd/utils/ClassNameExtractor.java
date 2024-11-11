@@ -136,11 +136,11 @@ public class ClassNameExtractor {
                 if (name.startsWith("BOOT-INF/classes/"))
                     name = name.substring("BOOT-INF/classes/".length());
 
-                if (name.endsWith(".class") && name.startsWith("org/example/")) {
+                if (name.endsWith(".class") && name.startsWith(prefix)) {
                     copyTo(jar.getInputStream(entry), name, outputDir);
                 } else if (name.endsWith(".jar")) {
                     try (InputStream is = jar.getInputStream(entry)) {
-                        processNestedJar(is, outputDir);
+                        processNestedJar(is, outputDir, prefix);
                     }
                 }
             }
@@ -150,13 +150,13 @@ public class ClassNameExtractor {
     }
 
 
-    private static void processNestedJar(InputStream is, File outputDir) throws IOException {
+    private static void processNestedJar(InputStream is, File outputDir, String prefix) throws IOException {
         try (JarInputStream jis = new JarInputStream(is)) {
             JarEntry embeddedEntry;
             while ((embeddedEntry = jis.getNextJarEntry()) != null) {
                 String name = embeddedEntry.getName();
 
-                if (name.endsWith(".class") && name.startsWith("org/example/")) {
+                if (name.endsWith(".class") && name.startsWith(prefix)) {
                     copyTo(jis, name, outputDir);
                 }
             }

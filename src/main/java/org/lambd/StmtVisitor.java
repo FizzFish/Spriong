@@ -130,7 +130,8 @@ public class StmtVisitor {
         if (world.getVisited().contains(callee)) {
             world.addActiveEdge(callee, container);
             world.quickCallee(callee, container, stmt);
-        } else {
+        } else if (callee.getDeclaringClass().isApplicationClass()) {
+            // first visit callee
             world.getMethod(callee).caller = container;
             world.visitMethod(callee);
             world.quickCallee(callee, container, stmt);

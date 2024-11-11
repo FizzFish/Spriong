@@ -57,22 +57,13 @@ public enum AnnotationType {
             addEntry((SpMethod) wrapper);
         }
     },
-    RPCMETHOD("Lio/grpc/stub/annotations;", false) {
+    RPCMETHOD("Lio/grpc/stub/annotations/RpcMethod;", false) {
         @Override
         public void apply(Wrapper wrapper, Map<String, String> elements) {
-            SpMethod sm = (SpMethod) wrapper;
+            SootClass sc = ((SpMethod) wrapper).getSootMethod().getDeclaringClass();
             String clsWithMethod = elements.get("fullMethodName");
-            String clsName = clsWithMethod.substring(0, clsWithMethod.lastIndexOf("/"));
             String methodName = clsWithMethod.substring(clsWithMethod.lastIndexOf("/") + 1);
-            // 获取 SootClass
-            SootClass sc = Scene.v().getSootClass(clsName);
-
-            for (SootMethod m : sc.getMethods()) {
-                if (m.getName().equals(methodName)) {
-                    SootWorld.v().addEntryPoint(m);
-                    return;
-                }
-            }
+            SootWorld.v().getAutoWired().addService(sc, methodName);
         }
     };
 
