@@ -26,12 +26,16 @@ public class SpMethod implements Wrapper {
     public SpMethod(SootMethod sootMethod) {
         this.name = sootMethod.getName();
         this.sootMethod = sootMethod;
-        summary = new Summary(this);
-        ptset = new PointerToSet(this);
-        manager = new OneObjManager(this, ptset);
-        state = State.VISITED;
+        state = State.UNINITIALZED;
     }
-
+    public void visit() {
+        if (state == State.UNINITIALZED) {
+            state = State.VISITED;
+            summary = new Summary(this);
+            ptset = new PointerToSet(this);
+            manager = new OneObjManager(this, ptset);
+        }
+    }
     public void addAnnotation(Annotation an) {
         annotionList.add(an);
     }
@@ -147,7 +151,7 @@ public class SpMethod implements Wrapper {
     }
 }
 enum State {
-    STRANGE,
+    UNINITIALZED,
     VISITED,
     FINISHED,
 }

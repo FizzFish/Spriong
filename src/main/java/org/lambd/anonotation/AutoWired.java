@@ -49,26 +49,27 @@ public class AutoWired {
         }
     }
     public void scanAppClasses() {
-        SootWorld sw = SootWorld.v();
-        for (SootClass sootClass: Scene.v().getApplicationClasses()) {
-            SpSootClass spSootClass = SootWorld.v().getClass(sootClass);
-            analyzeAnnotation(spSootClass);
-            sootClass.getMethods().forEach(sm -> {
-                analyzeAnnotation(sw.getMethod(sm));
-            });
+        for (SootClass sc: Scene.v().getApplicationClasses()) {
+            analyzeAnnotation(sc);
+            sc.getMethods().forEach(this::analyzeAnnotation);
         }
     }
-    private void analyzeAnnotation(Wrapper wrapper) {
+    private void analyzeAnnotation(Object obj) {
         VisibilityAnnotationTag tag = null;
-        if (wrapper instanceof SpSootClass ssc)
-            tag = (VisibilityAnnotationTag) ssc.getSootClass().getTag("VisibilityAnnotationTag");
-        else if (wrapper instanceof SpMethod sm)
-            tag = (VisibilityAnnotationTag) sm.getSootMethod().getTag("VisibilityAnnotationTag");
+        SootWorld sw = SootWorld.v();
+        boolean classOrMethod = obj instanceof SootClass;
+        if (classOrMethod)
+            tag = (VisibilityAnnotationTag) ((SootClass) obj).getTag("VisibilityAnnotationTag");
+        else
+            tag = (VisibilityAnnotationTag) ((SootMethod) obj).getTag("VisibilityAnnotationTag");
+        Wrapper wrapper = classOrMethod ? sw.getClass((SootClass) obj) : sw.getMethod((SootMethod) obj);
         if (tag != null) {
             tag.getAnnotations().forEach(anno -> {
                 Annotation annotation = Annotation.extractAnnotation(anno);
                 if (annotation != null) {
+//                    Wrapper wrapper = classOrMethod ? sw.getClass((SootClass) obj) : sw.getMethod((SootMethod) obj);
                     wrapper.addAnnotation(annotation);
+                    System.out.println("Annotation: " + annotation);
                     annotation.apply(wrapper);
                 }
             });

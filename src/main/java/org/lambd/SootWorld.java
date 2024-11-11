@@ -104,6 +104,7 @@ public class SootWorld {
             return;
         visited.add(method);
         SpMethod spMethod = getMethod(method);
+        spMethod.visit();
         StmtVisitor visitor = new StmtVisitor(spMethod);
         for (Unit unit : method.getActiveBody().getUnits()) {
             visitor.visit((Stmt) unit);
@@ -162,7 +163,7 @@ public class SootWorld {
 
             });
         });
-//        Scene.v().loadNecessaryClasses();
+        // Scene.v().loadNecessaryClasses();
         System.out.println(classes);
         for (SootClass sc: classes)
             autoWired.scanMethodInClass(sc);
@@ -225,8 +226,7 @@ public class SootWorld {
         // 设置入口点
         System.out.println("Entry points: " + entryPoints);
         Scene.v().setEntryPoints(new ArrayList<>(entryPoints));
-
-        // 运行 Soot
+        // 运行 Soot，生成ActiveBody
         PackManager.v().runPacks();
 
         System.out.println("Classes size: " + Scene.v().getClasses().size());
