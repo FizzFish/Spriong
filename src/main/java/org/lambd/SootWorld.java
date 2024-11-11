@@ -173,14 +173,13 @@ public class SootWorld {
     }
     public void initSootEnv() {
         G.reset();
-        List<String> realPath = new ArrayList<>();
+        Set<String> realPath = new HashSet<>();
         for (String clsPath : config.classPath) {
             if (clsPath.contains("!")) {
-                try {
-                    realPath.add( ClassNameExtractor.extractBootInfClasses(clsPath));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                String newPath = "src/main/resources/app-dir";
+                ClassNameExtractor.processJarFile(clsPath.substring(0, clsPath.lastIndexOf("!")),
+                                    newPath, clsPath.substring(clsPath.lastIndexOf("!") + 1));
+                realPath.add(newPath);
             } else {
                 realPath.add(clsPath);
             }
@@ -191,7 +190,7 @@ public class SootWorld {
         System.out.println("classpath: " + sootCp);
         Options.v().set_soot_classpath(sootCp);
         // 这条语句要谨慎，加入后会全部分析
-        Options.v().set_process_dir(realPath);
+        Options.v().set_process_dir(realPath.stream().toList());
 
         // 设置 Soot 选项
         soot.options.Options.v().set_app(true);

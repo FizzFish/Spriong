@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.JarInputStream;
 import java.util.stream.Stream;
 
 public class ClassNameExtractor {
@@ -119,5 +120,57 @@ public class ClassNameExtractor {
         jarFile.close();
 
         return pathString;
+    }
+
+    public static void processJarFile(String jarFilePath, String outputPath, String prefix) {
+        File jarFile = new File(jarFilePath);
+        File outputDir = new File(outputPath);
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+        try (JarFile jar = new JarFile(jarFile)) {
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (name.startsWith("BOOT-INF/classes/"))
+                    name = name.substring("BOOT-INF/classes/".length());
+
+                if (name.endsWith(".class") && name.startsWith("org/example/")) {
+                    copyTo(jar.getInputStream(entry), name, outputDir);
+                } else if (name.endsWith(".jar")) {
+                    try (InputStream is = jar.getInputStream(entry)) {
+                        processNestedJar(is, outputDir);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    private static void processNestedJar(InputStream is, File outputDir) throws IOException {
+        try (JarInputStream jis = new JarInputStream(is)) {
+            JarEntry embeddedEntry;
+            while ((embeddedEntry = jis.getNextJarEntry()) != null) {
+                String name = embeddedEntry.getName();
+
+                if (name.endsWith(".class") && name.startsWith("org/example/")) {
+                    copyTo(jis, name, outputDir);
+                }
+            }
+        }
+    }
+
+    private static void copyTo(InputStream is, String outputPath, File outputDir) throws IOException {
+        File outputFile = new File(outputDir, outputPath);
+        // 确保父目录存在
+        File parentDir = outputFile.getParentFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdirs();
+        }
+        FileOutputStream fos = new FileOutputStream(outputFile);
+        is.transferTo(fos);
     }
 }
