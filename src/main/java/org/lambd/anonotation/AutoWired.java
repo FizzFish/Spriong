@@ -55,7 +55,7 @@ public class AutoWired {
             analyzeAnnotation(sc);
             sc.getMethods().forEach(this::analyzeAnnotation);
         }
-        for (SootClass sc: Scene.v().getApplicationClasses()
+        for (SootClass sc: Scene.v().getApplicationClasses())
             checkInterface(sc);
     }
     private void checkInterface(SootClass sc) {
