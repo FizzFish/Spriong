@@ -229,7 +229,7 @@ public class SootWorld {
         PackManager.v().runPacks();
 
         System.out.println("Classes size: " + Scene.v().getClasses().size());
-        System.out.println("Classes size: " + Scene.v().getApplicationClasses().size());
+        System.out.println("Application classes size: " + Scene.v().getApplicationClasses().size());
 
     }
 

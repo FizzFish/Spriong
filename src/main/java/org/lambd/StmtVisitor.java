@@ -85,9 +85,8 @@ public class StmtVisitor {
                 Local base = (Local) instanceInvokeExpr.getBase();
                 VarPointer vp = ptset.getVarPointer(base);
                 // prune
-                if (!ptset.hasFormatObj(vp) && invoke.getArgCount() == 0)
-                    return;
-//                if (vp.isEmpty() && base.getType() instanceof RefType rt && rt.getSootClass().getShortName().equals("ReusableSimpleMessage")) {
+//                if (!ptset.hasFormatObj(vp) && invoke.getArgCount() == 0)
+//                    return;
                 if (vp.isEmpty()) {
                     vp.add(new Obj(base.getType(), stmt));
                 }

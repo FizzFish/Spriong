@@ -199,6 +199,9 @@ public class PointerToSet {
     private boolean hasField(FormatObj base, SootField field) {
         if (field.equals(Utils.arrayField))
             return true;
+        // TODO: taint transfer maybe change Obj type
+        if (canHoldString(base.getType()))
+            return true;
         if (base.type instanceof RefType refType) {
             SootClass declare = field.getDeclaringClass();
             SpHierarchy cg = SpHierarchy.v();

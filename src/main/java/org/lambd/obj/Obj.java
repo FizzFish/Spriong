@@ -5,6 +5,8 @@ import org.lambd.transition.RetTrans;
 import soot.Type;
 import soot.jimple.Stmt;
 
+import java.util.Objects;
+
 /**
  * Obj 代表一个抽象的Java对象，例如：o = New Object()
  */
@@ -26,11 +28,15 @@ public class Obj {
     }
 
     public int hashCode() {
-        return type.hashCode();
+        return Objects.hash(type, stmt);
     }
     public boolean equals(Object obj) {
-        if (obj instanceof Obj other)
-            return type.equals(other.type);
+        if (obj instanceof Obj other) {
+            if (stmt == null) {
+                return type.equals(other.type) && other.stmt == null;
+            }
+            return type.equals(other.type) && stmt.equals(other.stmt);
+        }
         return false;
     }
 }
