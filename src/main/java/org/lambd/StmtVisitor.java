@@ -93,12 +93,12 @@ public class StmtVisitor {
                  if (invoke instanceof SpecialInvokeExpr) {
                     SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
                     apply(callee, stmt);
-                } else if (instanceInvokeExpr instanceof InterfaceInvokeExpr
-                        || vp.isEmpty() // sometimes there are no objs
-                        || ptset.hasAbstractObj(vp)) {
-                    getCallee(stmt).forEach(callee -> {
-                        apply(callee, stmt);
-                    });
+                } else if (vp.noRealObjs()) {
+                     if (base.getType() instanceof RefType rt) {
+                         cg.getCallee(invoke, rt).forEach(callee -> {
+                             apply(callee, stmt);
+                         });
+                     }
                 } else if (instanceInvokeExpr instanceof VirtualInvokeExpr) {
                     vp.getObjs().forEach(obj -> {
                         if (obj.getType() instanceof RefType rt) {
@@ -166,12 +166,12 @@ public class StmtVisitor {
             } else if (rhs instanceof FieldRef fieldRef) {
                 // x = y.f
                 if (fieldRef instanceof InstanceFieldRef instanceFieldRef)
-                    objManager.loadField(lvar, (Local) instanceFieldRef.getBase(), instanceFieldRef.getField());
+                    objManager.loadField(lvar, (Local) instanceFieldRef.getBase(), instanceFieldRef.getField(), stmt);
                 else    // x = c.f
                     objManager.loadStaticField(lvar, fieldRef.getClass(), fieldRef.getField());
             } else if (rhs instanceof ArrayRef arrayRef) {
                 // x = y[i]
-                objManager.loadArray(lvar, (Local) arrayRef.getBase());
+                objManager.loadArray(lvar, (Local) arrayRef.getBase(), stmt);
             } else if (rhs instanceof BinopExpr) {
             } else if (rhs instanceof UnopExpr) {
             } else if (rhs instanceof InstanceOfExpr) {
@@ -208,27 +208,6 @@ public class StmtVisitor {
         }
     }
 
-    /**
-     * 获取unit对应的所有可能得callees
-     * @param unit
-     * @return
-     */
-    private Set<SootMethod> getCallee(Unit unit) {
-        Hierarchy hierarchy = Scene.v().getActiveHierarchy();
-        CallGraph cg = Scene.v().getCallGraph();
-        Set<SootMethod> methods = new HashSet();
-        for (Iterator<Edge> it = cg.edgesOutOf(unit); it.hasNext();) {
-            Edge edge = it.next();
-            SootMethod sootMethod = edge.getTgt().method();
-//            if (types != null) {
-//                Type type = sootMethod.getDeclaringClass().getType();
-//                if (!types.contains(type))
-//                    continue;
-//            }
-            methods.add(sootMethod);
-        }
-        return methods;
-    }
     public void visit(InvokeStmt stmt) {
         InvokeExpr invoke = stmt.getInvokeExpr();
         handleInvoke(stmt, invoke);

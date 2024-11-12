@@ -83,14 +83,14 @@ public class PointerToSet {
      */
     public void update(Local from, Local to, Weight weight, Stmt stmt) {
         // to.w2 = from.w1
-        Set<Pointer> fields = varFields(from, weight.getFromFields());
+        Set<Pointer> fields = varFields(from, weight.getFromFields(), stmt);
         if (fields.isEmpty())
             return;
         Set<Obj> objs = fields.stream()
                 .flatMap(Pointer::objs)
                 .collect(Collectors.toSet());
 
-        varFields(to, weight.getToFields()).forEach(toPointer -> {
+        varFields(to, weight.getToFields(), stmt).forEach(toPointer -> {
             if (weight.isUpdate()) {
                 toPointer.formatObjs().forEach(tfObj -> {
                     objs.stream().filter(Obj::isFormat).map(obj -> (FormatObj) obj).forEach(ffObj -> {
@@ -132,7 +132,7 @@ public class PointerToSet {
      */
     public void genSink(String sink, Weight weight, Local var, Stmt stmt) {
         // var.w => sink
-        varFields(var, weight.getFromFields()).stream().
+        varFields(var, weight.getFromFields(), stmt).stream().
                 flatMap(Pointer::formatObjs)
                 .forEach(o -> {
                     int i = o.getIndex();
@@ -182,14 +182,14 @@ public class PointerToSet {
             vars.put(to, vars.get(from));
         }
     }
-    public InstanceField getInstanceField(Obj base, SootField field) {
+    public InstanceField getInstanceField(Obj base, SootField field, Stmt stmt) {
         if (fields.contains(base, field))
             return fields.get(base, field);
         InstanceField ifield = new InstanceField(base, field);
         if (base instanceof FormatObj fobj) {
             Type type = field.getType();
             if (hasField(fobj, field)) {
-                GenObj gobj = new GenObj(fobj, field, type);
+                GenObj gobj = new GenObj(fobj, field, type, stmt);
                 ifield.add(gobj);
             }
         }
@@ -210,11 +210,11 @@ public class PointerToSet {
         }
         return true;
     }
-    public Set<Pointer> varFields(Local var, List<SootField> fields) {
+    public Set<Pointer> varFields(Local var, List<SootField> fields, Stmt stmt) {
         Set<Pointer> pointers = Set.of(getVarPointer(var));
         for (SootField field : fields) {
             pointers = pointers.stream().flatMap(Pointer::objs)
-                    .map(o -> getInstanceField(o, field))
+                    .map(o -> getInstanceField(o, field, stmt))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
             if (pointers.isEmpty())

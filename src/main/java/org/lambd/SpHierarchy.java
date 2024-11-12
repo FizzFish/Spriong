@@ -3,7 +3,13 @@ package org.lambd;
 import com.google.common.collect.HashBasedTable;
 import soot.*;
 import soot.jimple.InvokeExpr;
+import soot.jimple.toolkits.callgraph.CallGraph;
+import soot.jimple.toolkits.callgraph.Edge;
 import soot.util.NumberedString;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 /**
  * 自己实现的hierarchy，主要对外的接口是resolve(invoke, cls)
@@ -19,6 +25,21 @@ public class SpHierarchy {
         return cg;
     }
     private HashBasedTable<SootClass, NumberedString, SootMethod> dispatchTable = HashBasedTable.create();
+    /**
+     * 获取unit对应的所有可能得callees
+     * @return
+     */
+    public Set<SootMethod> getCallee(InvokeExpr invoke, RefType type) {
+        Hierarchy hierarchy = Scene.v().getActiveHierarchy();
+        Set<SootMethod> methods = new HashSet();
+        SootClass interfaceClass = type.getSootClass();
+        NumberedString signature = invoke.getMethodRef().getSubSignature();
+        for (SootClass sc: hierarchy.getImplementersOf(interfaceClass)) {
+            if (!sc.isPhantom() && sc.declaresMethod(signature))
+                methods.add(sc.getMethod(signature));
+        }
+        return methods;
+    }
     public SootMethod resolve(InvokeExpr invoke, SootClass cls) {
         SootMethodRef subsignature = invoke.getMethodRef();
         if (cls == null)

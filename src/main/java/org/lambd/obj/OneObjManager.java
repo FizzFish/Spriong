@@ -37,9 +37,9 @@ public class OneObjManager implements ObjManager {
     /**
      * x = y.f: pointer(x) merge pointer(y.f)
      */
-    public void loadField(Local to, Local base, SootField field) {
+    public void loadField(Local to, Local base, SootField field, Stmt stmt) {
         ptset.getLocalObjs(base).forEach(obj -> {
-            InstanceField fromPointer = ptset.getInstanceField(obj, field);
+            InstanceField fromPointer = ptset.getInstanceField(obj, field, stmt);
             VarPointer toPointer = ptset.getVarPointer(to);
             ptset.copy(fromPointer, toPointer);
         });
@@ -64,7 +64,7 @@ public class OneObjManager implements ObjManager {
     public void storeField(Local base, SootField field, Local from, Stmt stmt) {
         VarPointer fromPointer = ptset.getVarPointer(from);
         ptset.getLocalObjs(base).forEach(obj -> {
-            InstanceField toPointer = ptset.getInstanceField(obj, field);
+            InstanceField toPointer = ptset.getInstanceField(obj, field, stmt);
             if (obj instanceof FormatObj formatObj)
                 ptset.storeAlias(fromPointer, formatObj, field, stmt);
             ptset.copy(fromPointer, toPointer);
@@ -84,10 +84,10 @@ public class OneObjManager implements ObjManager {
      * x = y[i]: pointer(x) merge pointer(y[i])
      * 不关注数组索引，而是将y[]视作一个类似field的pointer，这里我们将这个数组field标记为Field("[*]")
      */
-    public void loadArray(Local to, Local base) {
+    public void loadArray(Local to, Local base, Stmt stmt) {
         ptset.getLocalObjs(base).forEach(obj -> {
 //            assert obj instanceof ArrayObj;
-            InstanceField fromPointer = ptset.getInstanceField(obj, Utils.arrayField);
+            InstanceField fromPointer = ptset.getInstanceField(obj, Utils.arrayField, stmt);
             VarPointer toPointer = ptset.getVarPointer(to);
             ptset.copy(fromPointer, toPointer);
         });
@@ -103,7 +103,7 @@ public class OneObjManager implements ObjManager {
             VarPointer fromPointer = ptset.getVarPointer(from);
             if (obj instanceof FormatObj formatObj)
                 ptset.storeAlias(fromPointer, formatObj, Utils.arrayField, stmt);
-            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayField);
+            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayField, stmt);
             ptset.copy(fromPointer, toPointer);
         });
     }

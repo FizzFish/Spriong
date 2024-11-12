@@ -10,7 +10,7 @@ import soot.jimple.Stmt;
 public interface ObjManager {
     void copy(Local from, Local to);
     // x = y.f
-    void loadField(Local to, Local base, SootField field);
+    void loadField(Local to, Local base, SootField field, Stmt stmt);
     // x = C.f
     void loadStaticField(Local to, Class clazz, SootField field);
     // x.f = y
@@ -18,7 +18,7 @@ public interface ObjManager {
     // C.f = y
     void storeStaticField(Class clazz, SootField field, Local from);
     // x = y[i]
-    void loadArray(Local to, Local base);
+    void loadArray(Local to, Local base, Stmt stmt);
     // x[i] = y
     void storeArray(Local base, Local from, Stmt stmt);
 }

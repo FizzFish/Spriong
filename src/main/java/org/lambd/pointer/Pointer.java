@@ -26,6 +26,10 @@ public abstract class Pointer {
                 .filter(obj -> obj instanceof ConstantObj)
                 .map(obj -> (ConstantObj) obj);
     }
+    public Stream<Obj> realObjs() {
+        return objs.stream()
+                .filter(obj -> !obj.isInterface());
+    }
     public Stream<Obj> objs() {
         return objs.stream();
     }
@@ -37,5 +41,8 @@ public abstract class Pointer {
     }
     public boolean isEmpty() {
         return objs.isEmpty();
+    }
+    public boolean noRealObjs() {
+        return objs.stream().allMatch(Obj::isInterface);
     }
 }

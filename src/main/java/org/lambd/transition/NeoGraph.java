@@ -14,10 +14,12 @@ import static org.neo4j.driver.Values.parameters;
 
 public class NeoGraph implements AutoCloseable {
     private Driver driver = null;
+    private String database = "neo4j";
     private List<Map<String, Object>> methodsToUpdate = new ArrayList<>();
     List<Map<String, Object>> relationshipsToUpdate = new ArrayList<>();
     private boolean save;
-    public NeoGraph(String uri, String user, String password, boolean save) {
+    public NeoGraph(String uri, String user, String password, String database, boolean save) {
+        this.database = database;
         this.save = save;
         if (save)
             driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
@@ -61,7 +63,8 @@ public class NeoGraph implements AutoCloseable {
     public void flush() {
         if (!save)
             return;
-        try (Session session = driver.session()) {
+        SessionConfig config = SessionConfig.forDatabase(database);
+        try (Session session = driver.session(config)) {
             session.writeTransaction(tx -> {
                 // 删除原有数据
                 tx.run("MATCH (n) DETACH DELETE n");
@@ -87,7 +90,8 @@ public class NeoGraph implements AutoCloseable {
     }
 
     public static void main(String[] args) {
-        var graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456", true);
+        var graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456", "neo4j",true);
+        graph.driver.session().run("CREATE (n:Person {name: 'Alice', age: 30})");
 //        graph.createMethodNode("main", "main()");
 //        graph.createMethodNode("test", "test()");
 //        graph.createRelation("main", "test");

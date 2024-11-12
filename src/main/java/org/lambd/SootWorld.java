@@ -28,7 +28,7 @@ public class SootWorld {
     private Set<SpMethod> updateCallers = new HashSet<>();
     private NeoGraph graph;
     private SootWorld() {
-        graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456", false);
+        graph = new NeoGraph("bolt://localhost:7687", "neo4j", "123456", "neo4j",false);
     }
     public void setConfig(Config config) {
         this.config = config;
