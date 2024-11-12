@@ -179,9 +179,12 @@ public class SootWorld {
         Set<String> realPath = new HashSet<>();
         for (String clsPath : config.classPath) {
             if (clsPath.contains("!")) {
-                String newPath = "src/main/resources/app-dir";
-                ClassNameExtractor.processJarFile(clsPath.substring(0, clsPath.lastIndexOf("!")),
-                                    newPath, clsPath.substring(clsPath.lastIndexOf("!") + 1));
+                String jarPath = clsPath.substring(0, clsPath.indexOf("!"));
+                String appPath = clsPath.substring(clsPath.lastIndexOf("!") + 1);
+                String uuid = UUID.nameUUIDFromBytes(clsPath.getBytes()).toString().substring(0, 7);
+                String newPath = "src/main/resources/" + uuid;
+                if (!new File(newPath).exists())
+                    ClassNameExtractor.processJarFile(jarPath, newPath, appPath);
                 realPath.add(newPath);
             } else {
                 realPath.add(clsPath);

@@ -255,21 +255,11 @@ public class PointerToSet {
         });
     }
 
-    public void handleCast(Local lhs, Local rhs, RefType type) {
-        VarPointer vp = getVarPointer(rhs);
-        SpHierarchy cg = SpHierarchy.v();
-        vars.put(lhs, vp);
-        /** cannot always cast
-        * if (msg instanceof MultiFormatStringBuilderFormattable) {
-        *   ((MultiFormatStringBuilderFormattable)msg).formatTo(this.formats, workingBuilder);
-        *} else {
-        *   ((StringBuilderFormattable)msg).formatTo(workingBuilder);
-        *}
-        */
-        vp.getObjs().forEach(obj -> {
-            if (obj.getType() instanceof RefType rt && type.getSootClass().isConcrete()
-                    && cg.isSubClass(type.getSootClass(), rt.getSootClass()))
-                obj.setType(type);
+    public void handleCast(Local from, Local to, Type type, Stmt stmt) {
+        VarPointer fromPointer = getVarPointer(from);
+        VarPointer toPointer = getVarPointer(to);
+        fromPointer.getObjs().forEach(obj -> {
+            toPointer.add(obj.castClone(stmt, type));
         });
     }
     public int getVarSize() {

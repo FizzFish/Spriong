@@ -26,7 +26,9 @@ public class Obj {
     public boolean isFormat() {
         return false;
     }
-
+    public Obj castClone(Stmt stmt, Type type) {
+        return new Obj(type, stmt);
+    }
     public int hashCode() {
         return Objects.hash(type, stmt);
     }

@@ -180,10 +180,7 @@ public class StmtVisitor {
                 // maybe need turn obj type
                 Value op = castExpr.getOp();
                 if (op instanceof Local rvar)
-                    container.getPtset().getSameVP(rvar, lvar);
-//                if (op instanceof Local local && lvar.getType() instanceof RefType rtl) {
-//                    container.getPtset().handleCast(lvar, local, rtl);
-//                }
+                    container.getPtset().handleCast(rvar, lvar, lvar.getType(), stmt);
             } else {
                 System.out.println("unsupported assignment rhs: " + stmt);
             }

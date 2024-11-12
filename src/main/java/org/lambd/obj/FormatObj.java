@@ -26,6 +26,11 @@ public class FormatObj extends Obj {
         super(type, stmt);
         this.index = index;
     }
+    public Obj castClone(Stmt stmt, Type type) {
+        FormatObj formatObj = new FormatObj(type, stmt, index);
+        formatObj.fields = fields;
+        return formatObj;
+    }
     public int getIndex() {
         return index;
     }
