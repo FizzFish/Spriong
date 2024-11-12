@@ -81,13 +81,14 @@ public class PointerToSet {
      * 对于to.w2 = from.w1，如果to和from均包含参数对象，且w1/w2具有update属性，则生成新的transition
      * 这里感觉需要对w2进行判断，即w2不能为空，需要进一步测试[TODO]
      */
-    public void update(Local from, Local to, Weight weight, Stmt stmt) {
+    public void update(Local from, Local to, Weight weight, Stmt stmt, Type type) {
         // to.w2 = from.w1
         Set<Pointer> fields = varFields(from, weight.getFromFields(), stmt);
         if (fields.isEmpty())
             return;
         Set<Obj> objs = fields.stream()
                 .flatMap(Pointer::objs)
+                .map(o -> o.castClone(stmt, type))
                 .collect(Collectors.toSet());
 
         varFields(to, weight.getToFields(), stmt).forEach(toPointer -> {
@@ -204,8 +205,9 @@ public class PointerToSet {
             return true;
         if (base.type instanceof RefType refType) {
             SootClass declare = field.getDeclaringClass();
+            SootClass instance = refType.getSootClass();
             SpHierarchy cg = SpHierarchy.v();
-            if (!cg.isSubClass(declare, refType.getSootClass()))
+            if (!cg.isSubClass(instance, declare))
                 return false;
         }
         return true;

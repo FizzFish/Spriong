@@ -8,6 +8,7 @@ import soot.SootField;
 import soot.Type;
 import soot.jimple.Stmt;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +27,10 @@ public class FormatObj extends Obj {
         super(type, stmt);
         this.index = index;
     }
-    public Obj castClone(Stmt stmt, Type type) {
-        FormatObj formatObj = new FormatObj(type, stmt, index);
+    public Obj castClone(Stmt stmt, @Nullable Type newType) {
+        if (newType == null)
+            return this;
+        FormatObj formatObj = new FormatObj(newType, stmt, index);
         formatObj.fields = fields;
         return formatObj;
     }

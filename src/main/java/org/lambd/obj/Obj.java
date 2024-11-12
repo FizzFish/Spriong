@@ -6,6 +6,7 @@ import soot.RefType;
 import soot.Type;
 import soot.jimple.Stmt;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
@@ -32,8 +33,10 @@ public class Obj {
     public boolean isInterface() {
         return isInterface;
     }
-    public Obj castClone(Stmt stmt, Type type) {
-        return new Obj(type, stmt);
+    public Obj castClone(Stmt stmt, @Nullable Type newType) {
+        if (newType == null)
+            return this;
+        return new Obj(newType, stmt);
     }
     public int hashCode() {
         return Objects.hash(type, stmt);

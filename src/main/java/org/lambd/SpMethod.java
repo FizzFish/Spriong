@@ -89,8 +89,12 @@ public class SpMethod implements Wrapper {
         Value toVar = getParameter(stmt, to);
         if (fromVar == toVar)
             return;
+        Type type = null;
+        if (to == -2 && toVar != null && toVar.getType() instanceof RefType rt) {
+            type = rt;
+        }
         if (fromVar instanceof Local l1 && toVar instanceof Local l2)
-            ptset.update(l1, l2, w, stmt);
+            ptset.update(l1, l2, w, stmt, type);
     }
     public void handleLoadTransition(Stmt stmt) {
         // packages(String[])($7)
