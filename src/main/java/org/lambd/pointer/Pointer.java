@@ -18,17 +18,21 @@ public abstract class Pointer {
     }
     public Stream<FormatObj> formatObjs() {
         return objs.stream()
-                .filter(obj -> obj instanceof FormatObj)
-                .map(obj -> (FormatObj) obj);
+                .filter(FormatObj.class::isInstance)
+                .map(FormatObj.class::cast);
     }
     public Stream<ConstantObj> constantObjs() {
         return objs.stream()
-                .filter(obj -> obj instanceof ConstantObj)
-                .map(obj -> (ConstantObj) obj);
+                .filter(ConstantObj.class::isInstance)
+                .map(ConstantObj.class::cast);
+    }
+    public Stream<Obj> abstractObjs() {
+        return objs.stream()
+                .filter(Obj::isMayMultiple);
     }
     public Stream<Obj> realObjs() {
         return objs.stream()
-                .filter(obj -> !obj.isInterface());
+                .filter(o -> !o.isMayMultiple());
     }
     public Stream<Obj> objs() {
         return objs.stream();
@@ -42,7 +46,7 @@ public abstract class Pointer {
     public boolean isEmpty() {
         return objs.isEmpty();
     }
-    public boolean noRealObjs() {
+    public boolean allInterface() {
         return objs.stream().allMatch(Obj::isInterface);
     }
 }

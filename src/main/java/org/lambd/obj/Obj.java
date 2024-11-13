@@ -12,42 +12,13 @@ import java.util.Objects;
 /**
  * Obj 代表一个抽象的Java对象，例如：o = New Object()
  */
-public class Obj {
-    public Type type;
-    public Stmt stmt;
-    private boolean isInterface;
-    public Obj(Type type, Stmt stmt) {
-        this.type = type;
-        this.stmt = stmt;
-        isInterface = type instanceof RefType refType && refType.getSootClass().isInterface();
-    }
-    public Type getType() {
-        return type;
-    }
-    public void setType(Type type) {
-        this.type = type;
-    }
-    public boolean isFormat() {
+public interface Obj {
+    Type getType();
+    Obj castClone(Stmt stmt, @Nullable Type newType);
+    default boolean isMayMultiple() {
         return false;
     }
-    public boolean isInterface() {
-        return isInterface;
-    }
-    public Obj castClone(Stmt stmt, @Nullable Type newType) {
-        if (newType == null)
-            return this;
-        return new Obj(newType, stmt);
-    }
-    public int hashCode() {
-        return Objects.hash(type, stmt);
-    }
-    public boolean equals(Object obj) {
-        if (obj instanceof Obj other) {
-            if (stmt == null) {
-                return type.equals(other.type) && other.stmt == null;
-            }
-            return type.equals(other.type) && stmt.equals(other.stmt);
-        }
-        return false;
+    default boolean isInterface() {
+        return getType() instanceof RefType rt && rt.getSootClass().isInterface();
     }
 }

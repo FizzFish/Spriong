@@ -1,13 +1,13 @@
 package org.lambd.obj;
 
+import soot.RefType;
 import soot.Type;
 import soot.jimple.Constant;
 import soot.jimple.Stmt;
 import soot.jimple.StringConstant;
 
-public class ConstantObj extends Obj {
+public class ConstantObj extends TypeObj {
     private Constant constant;
-
     public ConstantObj(Type type, Stmt stmt, Constant constant)
     {
         super(type, stmt);
@@ -23,8 +23,5 @@ public class ConstantObj extends Obj {
     }
     public String toString() {
         return String.format("ConstantObj: %s", constant);
-    }
-    public boolean isFormat() {
-        return false;
     }
 }

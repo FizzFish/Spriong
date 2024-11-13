@@ -106,8 +106,10 @@ public class SootWorld {
         SpMethod spMethod = getMethod(method);
         spMethod.visit();
         StmtVisitor visitor = new StmtVisitor(spMethod);
-        for (Unit unit : method.getActiveBody().getUnits()) {
-            visitor.visit((Stmt) unit);
+        if (method.hasActiveBody()) {
+            for (Unit unit : method.getActiveBody().getUnits()) {
+                visitor.visit((Stmt) unit);
+            }
         }
         spMethod.getSummary().print(true);
         spMethod.finish();
@@ -212,6 +214,7 @@ public class SootWorld {
         Options.v().setPhaseOption("cg", "rta:true");
         Options.v().setPhaseOption("cg.cha", "on:false");
         Options.v().setPhaseOption("cg.spark", "on:false");
+        Options.v().setPhaseOption("jb", "use-original-names:true");
 
         Options.v().set_output_format(Options.output_format_none);
 

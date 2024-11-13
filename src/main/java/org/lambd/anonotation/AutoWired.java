@@ -13,7 +13,9 @@ import java.util.List;
 import java.util.Map;
 
 public class AutoWired {
+    // autowired beans
     private Map<RefType, SpSootClass> autowrireds = new HashMap<>();
+    // grpc services
     private Map<SootClass, List<String>> services = new HashMap<>();
     public void addBean(RefType type, SpSootClass cls)
     {

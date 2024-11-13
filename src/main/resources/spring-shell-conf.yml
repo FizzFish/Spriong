@@ -1,5 +1,5 @@
 classPath:
-  - "src/main/resources/spring-shell.jar!/BOOT-INF/classes"
+  - "src/main/resources/spring-shell.jar!org/example"
 source:
   { className: "org.example.Application", method: "void main(java.lang.String[])" }
 sinks:

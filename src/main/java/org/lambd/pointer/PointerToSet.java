@@ -4,13 +4,14 @@ import com.google.common.collect.HashBasedTable;
 import org.lambd.SpHierarchy;
 import org.lambd.SpMethod;
 import org.lambd.obj.FormatObj;
-import org.lambd.obj.GenObj;
 import org.lambd.obj.Obj;
 import org.lambd.obj.ConstantObj;
+import org.lambd.obj.TypeObj;
 import org.lambd.transition.Summary;
 import org.lambd.transition.Weight;
 import org.lambd.utils.Utils;
 import soot.*;
+import soot.jimple.Ref;
 import soot.jimple.Stmt;
 
 import java.util.*;
@@ -94,7 +95,7 @@ public class PointerToSet {
         varFields(to, weight.getToFields(), stmt).forEach(toPointer -> {
             if (weight.isUpdate()) {
                 toPointer.formatObjs().forEach(tfObj -> {
-                    objs.stream().filter(Obj::isFormat).map(obj -> (FormatObj) obj).forEach(ffObj -> {
+                    objs.stream().filter(FormatObj.class::isInstance).map(FormatObj.class::cast).forEach(ffObj -> {
                         if (ffObj.getIndex() != tfObj.getIndex()) {
                             Weight w = new Weight(ffObj.getFields(), tfObj.getFields());
                             w.setUpdate();
@@ -137,7 +138,7 @@ public class PointerToSet {
                 flatMap(Pointer::formatObjs)
                 .forEach(o -> {
                     int i = o.getIndex();
-                    if (canHoldString(o.type) && i != -1) {
+                    if (canHoldSink(o.getType()) && i != -1) {
                         Weight w = new Weight(o.getFields());
                         container.getSummary().addSink(sink, i, w, stmt);
                     }
@@ -148,35 +149,13 @@ public class PointerToSet {
      * handleReturn时，有时需要为lvar增加返回对象，避免lvar的pset为空，但这样可能是多余的，是否需要简化[TODO]
      */
     public void updateLhs(Local lhs, RefType type, Stmt stmt) {
-        Obj obj = new Obj(type, stmt);
+        Obj obj = new TypeObj(type, stmt);
         getVarPointer(lhs).add(obj);
     }
-    private boolean canHoldString(Type type) {
-        String typeStr = type.toString();
-        if (typeStr.equals("java.lang.String") || typeStr.equals("java.lang.StringBuilder")
-                || typeStr.equals("java.lang.CharSequence")
-                || typeStr.equals("char[]"))
-            return true;
-        if (typeStr.startsWith("org.glassfish.jersey") || typeStr.startsWith("org.eclipse.jetty")
-                || typeStr.equals("javax.servlet.http.HttpServletRequest"))
-            return true;
-        return false;
-    }
+
     public VarPointer getVarPointer(Local var) {
         return vars.computeIfAbsent(var,
                 f -> new VarPointer(var));
-    }
-    public boolean hasAbstractObj(VarPointer vp) {
-        for (Obj obj : vp.getObjs())
-            if (obj instanceof FormatObj fo && fo.getType() instanceof RefType rt && rt.getSootClass().isAbstract())
-                    return true;
-        return false;
-    }
-    public boolean hasFormatObj(VarPointer vp) {
-        for (Obj obj : vp.getObjs())
-            if (obj instanceof FormatObj fo)
-                return true;
-        return false;
     }
     public void getSameVP(Local from, Local to) {
         if (vars.containsKey(from)) {
@@ -188,28 +167,44 @@ public class PointerToSet {
             return fields.get(base, field);
         InstanceField ifield = new InstanceField(base, field);
         if (base instanceof FormatObj fobj) {
-            Type type = field.getType();
             if (hasField(fobj, field)) {
-                GenObj gobj = new GenObj(fobj, field, type, stmt);
+                FormatObj gobj = new FormatObj(fobj, field, stmt);
                 ifield.add(gobj);
             }
         }
         fields.put(base, field, ifield);
         return ifield;
     }
+    private boolean canHoldSink(Type type) {
+        /**
+        String typeStr = type.toString();
+        if (typeStr.equals("java.lang.String") || typeStr.equals("java.lang.StringBuilder")
+                || typeStr.equals("java.lang.CharSequence")
+                || typeStr.equals("char[]"))
+            return true;
+        if (typeStr.startsWith("org.glassfish.jersey") || typeStr.startsWith("org.eclipse.jetty")
+                || typeStr.equals("javax.servlet.http.HttpServletRequest"))
+            return true;
+        System.err.println("Unsupported sink type: " + type);
+         */
+        return true;
+    }
     private boolean hasField(FormatObj base, SootField field) {
+        /**
         if (field.equals(Utils.arrayField))
             return true;
         // TODO: taint transfer maybe change Obj type
-        if (canHoldString(base.getType()))
+        if (canHoldSink(base.getType()))
             return true;
-        if (base.type instanceof RefType refType) {
+        if (base.getType() instanceof RefType rt) {
             SootClass declare = field.getDeclaringClass();
-            SootClass instance = refType.getSootClass();
+            SootClass instance = rt.getSootClass();
             SpHierarchy cg = SpHierarchy.v();
-            if (!cg.isSubClass(instance, declare))
+            if (!cg.isSubClass(instance, declare)) {
+                System.err.println("GetField Error: " + field.getName() + " from " + base.getType());
                 return false;
-        }
+            }
+        } */
         return true;
     }
     public Set<Pointer> varFields(Local var, List<SootField> fields, Stmt stmt) {
@@ -242,8 +237,9 @@ public class PointerToSet {
             if (obj instanceof FormatObj fobj) {
                 Weight w = new Weight(fobj.getFields());
                 summary.addTransition(fobj.getIndex(), -2, w, stmt);
-            } else if (obj.getType() instanceof RefType rt){
-                summary.addReturn(rt);
+            } else {
+                if (obj.getType() instanceof RefType rt)
+                    summary.addReturn(rt);
             }
             fields.row(obj).forEach((field, ifield) -> {
                 ifield.getObjs().forEach(o -> {
@@ -257,7 +253,7 @@ public class PointerToSet {
         });
     }
 
-    public void handleCast(Local from, Local to, Type type, Stmt stmt) {
+    public void handleCast(Local from, Local to, RefType type, Stmt stmt) {
         VarPointer fromPointer = getVarPointer(from);
         VarPointer toPointer = getVarPointer(to);
         fromPointer.getObjs().forEach(obj -> {

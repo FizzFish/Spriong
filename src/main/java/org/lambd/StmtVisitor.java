@@ -1,9 +1,6 @@
 package org.lambd;
 
-import org.lambd.obj.ConstantObj;
-import org.lambd.obj.FormatObj;
-import org.lambd.obj.Obj;
-import org.lambd.obj.ObjManager;
+import org.lambd.obj.*;
 import org.lambd.pointer.InstanceField;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.pointer.VarPointer;
@@ -16,6 +13,7 @@ import soot.jimple.toolkits.callgraph.Edge;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Visitor模式访问不同的Stmts，关键的几种Statement:
@@ -84,29 +82,41 @@ public class StmtVisitor {
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
                 Local base = (Local) instanceInvokeExpr.getBase();
                 VarPointer vp = ptset.getVarPointer(base);
-                // prune
-//                if (!ptset.hasFormatObj(vp) && invoke.getArgCount() == 0)
-//                    return;
                 if (vp.isEmpty()) {
-                    vp.add(new Obj(base.getType(), stmt));
+                    // base = Cls.field
+                    vp.add(new TypeObj((RefType) base.getType(), stmt));
+//                    System.err.println("vp is empty");
                 }
-                 if (invoke instanceof SpecialInvokeExpr) {
-                    SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
-                    apply(callee, stmt);
-                } else if (vp.noRealObjs()) {
-                     if (base.getType() instanceof RefType rt) {
-                         cg.getCallee(invoke, rt).forEach(callee -> {
-                             apply(callee, stmt);
-                         });
+                // special, virtual, interface
+                if (invoke instanceof SpecialInvokeExpr) {
+                     SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
+                     apply(callee, stmt);
+                } else if (vp.allInterface()) {
+                    if (base.getType() instanceof RefType rt) {
+                        cg.getCallee(invoke, rt).forEach(callee -> {
+                            apply(callee, stmt);
+                        });
+                    }
+                } else {
+                     // 找到所有可能得类型
+                     Hierarchy hierarchy = Scene.v().getActiveHierarchy();
+                     Set<SootClass> possibleSootClasses = new HashSet<>();
+                     vp.objs().forEach(obj -> {
+                         if (obj.getType() instanceof RefType rt) {
+                             SootClass sc = rt.getSootClass();
+                             if (!sc.isInterface()) {
+                                 possibleSootClasses.add(sc);
+//                                 if (obj.isMayMultiple())
+//                                     possibleSootClasses.addAll(hierarchy.getSubclassesOf(sc));
+                             }
+                         }
+                     });
+                     Set<SootMethod> calleeSet = possibleSootClasses.stream()
+                             .map(sc-> cg.resolve(invoke, sc)).collect(Collectors.toSet());
+                     for (SootMethod callee: calleeSet) {
+                         if (callee != null)
+                            apply(callee, stmt);
                      }
-                } else if (instanceInvokeExpr instanceof VirtualInvokeExpr) {
-                    vp.getObjs().forEach(obj -> {
-                        if (obj.getType() instanceof RefType rt) {
-                            SootMethod callee = cg.resolve(invoke, rt.getSootClass());
-                            if (callee != null)
-                                apply(callee, stmt);
-                        }
-                    });
                 }
             } else {
                 // static prune
@@ -160,7 +170,7 @@ public class StmtVisitor {
             if (rhs instanceof Local rvar) {
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-                pts.addLocal(lvar, new Obj(newExpr.getType(), stmt));
+                pts.addLocal(lvar, new TypeObj(newExpr.getType(), stmt));
             } else if (rhs instanceof Constant constant) {
                 pts.addLocal(lvar, new ConstantObj(rhs.getType(), stmt, constant));
             } else if (rhs instanceof FieldRef fieldRef) {
@@ -179,8 +189,8 @@ public class StmtVisitor {
                 // StmpManager::add: ((Log4jLogEvent)event).makeMessageImmutable();
                 // maybe need turn obj type
                 Value op = castExpr.getOp();
-                if (op instanceof Local rvar)
-                    container.getPtset().handleCast(rvar, lvar, lvar.getType(), stmt);
+                if (op instanceof Local rvar && lvar.getType() instanceof RefType rt)
+                    container.getPtset().handleCast(rvar, lvar, rt, stmt);
             } else {
                 System.out.println("unsupported assignment rhs: " + stmt);
             }
