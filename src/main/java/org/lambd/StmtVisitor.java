@@ -78,6 +78,7 @@ public class StmtVisitor {
             }
             SpHierarchy cg = SpHierarchy.v();
             PointerToSet ptset = container.getPtset();
+            handleArguments(invoke);
             // there are a lot of compromises here
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
                 Local base = (Local) instanceInvokeExpr.getBase();
@@ -99,15 +100,14 @@ public class StmtVisitor {
                     }
                 } else {
                      // 找到所有可能得类型
-                     Hierarchy hierarchy = Scene.v().getActiveHierarchy();
                      Set<SootClass> possibleSootClasses = new HashSet<>();
                      vp.objs().forEach(obj -> {
                          if (obj.getType() instanceof RefType rt) {
                              SootClass sc = rt.getSootClass();
                              if (!sc.isInterface()) {
                                  possibleSootClasses.add(sc);
-//                                 if (obj.isMayMultiple())
-//                                     possibleSootClasses.addAll(hierarchy.getSubclassesOf(sc));
+                                 if (obj.isMayMultiple() && obj instanceof FormatObj formatObj)
+                                     possibleSootClasses.addAll(container.getMayClass(formatObj.getIndex()));
                              }
                          }
                      });
@@ -124,6 +124,21 @@ public class StmtVisitor {
                     return;
                 SootMethod callee = cg.resolve(invoke, null);
                 apply(callee, stmt);
+            }
+        }
+    }
+    private void handleArguments(InvokeExpr invoke) {
+        PointerToSet ptset = container.getPtset();
+        for (int i = 0; i < invoke.getArgCount(); ++i) {
+            Value arg = invoke.getArg(i);
+            if (arg instanceof Local local) {
+                int finalI = i;
+                ptset.getLocalObjs(local).forEach(obj -> {
+                    if (obj.getType() instanceof RefType rt) {
+                        if (!rt.getSootClass().isInterface())
+                            container.addMayClass(finalI, rt.getSootClass());
+                    }
+                });
             }
         }
     }

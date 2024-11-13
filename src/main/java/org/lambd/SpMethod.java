@@ -10,8 +10,7 @@ import soot.*;
 import soot.jimple.*;
 import soot.tagkit.VisibilityAnnotationTag;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class SpMethod implements Wrapper {
@@ -21,6 +20,8 @@ public class SpMethod implements Wrapper {
     private ObjManager manager;
     private PointerToSet ptset;
     private List<Annotation> annotionList = new ArrayList<>();
+    // 第i个参数可能的类型
+    private Map<Integer, Set<SootClass>> mayClassMap = new HashMap<>();
     private State state;
     public SpMethod caller;
     public SpMethod(SootMethod sootMethod) {
@@ -35,6 +36,12 @@ public class SpMethod implements Wrapper {
             ptset = new PointerToSet(this);
             manager = new OneObjManager(this, ptset);
         }
+    }
+    public void addMayClass(int index, SootClass mayClass) {
+        mayClassMap.computeIfAbsent(index, n -> new HashSet<>()).add(mayClass);
+    }
+    public Set<SootClass> getMayClass(int index) {
+        return mayClassMap.getOrDefault(index, Collections.emptySet());
     }
     public void addAnnotation(Annotation an) {
         annotionList.add(an);
