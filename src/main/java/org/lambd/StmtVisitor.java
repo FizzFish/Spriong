@@ -10,9 +10,7 @@ import soot.jimple.*;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -78,7 +76,7 @@ public class StmtVisitor {
             }
             SpHierarchy cg = SpHierarchy.v();
             PointerToSet ptset = container.getPtset();
-            handleArguments(invoke);
+            Map<Integer, Set<SootClass>> mayClassMap = handleArguments(invoke);
             // there are a lot of compromises here
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
                 Local base = (Local) instanceInvokeExpr.getBase();
@@ -91,11 +89,11 @@ public class StmtVisitor {
                 // special, virtual, interface
                 if (invoke instanceof SpecialInvokeExpr) {
                      SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
-                     apply(callee, stmt);
+                     apply(callee, stmt, mayClassMap);
                 } else if (vp.allInterface()) {
                     if (base.getType() instanceof RefType rt) {
                         cg.getCallee(invoke, rt).forEach(callee -> {
-                            apply(callee, stmt);
+                            apply(callee, stmt, mayClassMap);
                         });
                     }
                 } else {
@@ -115,7 +113,7 @@ public class StmtVisitor {
                              .map(sc-> cg.resolve(invoke, sc)).collect(Collectors.toSet());
                      for (SootMethod callee: calleeSet) {
                          if (callee != null)
-                            apply(callee, stmt);
+                            apply(callee, stmt, mayClassMap);
                      }
                 }
             } else {
@@ -123,24 +121,22 @@ public class StmtVisitor {
                 if (invoke.getArgCount() == 0)
                     return;
                 SootMethod callee = cg.resolve(invoke, null);
-                apply(callee, stmt);
+                apply(callee, stmt, mayClassMap);
             }
         }
     }
-    private void handleArguments(InvokeExpr invoke) {
+    private Map<Integer, Set<SootClass>> handleArguments(InvokeExpr invoke) {
         PointerToSet ptset = container.getPtset();
+        Map<Integer, Set<SootClass>> mayClassMap = new HashMap<>();
         for (int i = 0; i < invoke.getArgCount(); ++i) {
             Value arg = invoke.getArg(i);
             if (arg instanceof Local local) {
-                int finalI = i;
-                ptset.getLocalObjs(local).forEach(obj -> {
-                    if (obj.getType() instanceof RefType rt) {
-                        if (!rt.getSootClass().isInterface())
-                            container.addMayClass(finalI, rt.getSootClass());
-                    }
-                });
+                for (Obj obj: ptset.getLocalObjs(local))
+                    if (obj.getType() instanceof RefType rt && !rt.getSootClass().isInterface())
+                        mayClassMap.computeIfAbsent(i, n -> new HashSet<>()).add(rt.getSootClass());
             }
         }
+        return mayClassMap;
     }
 
     /**
@@ -148,7 +144,7 @@ public class StmtVisitor {
      * 否则先访问该函数，再应用其摘要效果
      * 这里想解决callgraph中的环问题，但没有处理好[TODO]
      */
-    private void apply(SootMethod callee, Stmt stmt) {
+    private void apply(SootMethod callee, Stmt stmt, Map<Integer, Set<SootClass>> mayClassMap) {
         SootWorld world = SootWorld.v();
         if (container.getSootMethod() == callee)
             return;
@@ -158,7 +154,7 @@ public class StmtVisitor {
         } else if (callee.getDeclaringClass().isApplicationClass()) {
             // first visit callee
             world.getMethod(callee).caller = container;
-            world.visitMethod(callee);
+            world.visitMethod(callee, mayClassMap);
             world.quickCallee(callee, container, stmt);
         }
         // update neo4j callgraph

@@ -1,22 +1,13 @@
-package org.lambd.anonotation;
+package org.lambd.annotation;
 
-import org.lambd.SootWorld;
-import org.lambd.SpMethod;
-import org.lambd.wrapper.SpSootClass;
 import org.lambd.wrapper.Wrapper;
-import soot.Scene;
-import soot.SootClass;
 import soot.SootMethod;
 import soot.tagkit.AnnotationStringElem;
 import soot.tagkit.AnnotationTag;
-import soot.tagkit.Tag;
 import soot.tagkit.VisibilityAnnotationTag;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  *

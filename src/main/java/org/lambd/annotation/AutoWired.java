@@ -1,4 +1,4 @@
-package org.lambd.anonotation;
+package org.lambd.annotation;
 
 import org.lambd.SootWorld;
 import org.lambd.SpMethod;

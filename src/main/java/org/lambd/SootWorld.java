@@ -1,6 +1,6 @@
 package org.lambd;
 
-import org.lambd.anonotation.AutoWired;
+import org.lambd.annotation.AutoWired;
 import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
 import org.lambd.wrapper.SpSootClass;
@@ -71,6 +71,7 @@ public class SootWorld {
     }
     public boolean quickMethodRef(String signature, SpMethod caller, Stmt stmt) {
         // 1. transition or sink not enter
+        // authenticate or some transport callback
         if (methodRefMap.containsKey(signature)) {
             methodRefMap.get(signature).forEach(transition -> {
                 transition.apply(caller, stmt);
@@ -99,12 +100,19 @@ public class SootWorld {
             spCallee.getSummary().addCaller(caller);
         }
     }
-    public void visitMethod(SootMethod method) {
+    public void visitMethod(SootMethod method, Map<Integer, Set<SootClass>> mayClassMap) {
         if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
             return;
         visited.add(method);
         SpMethod spMethod = getMethod(method);
         spMethod.visit();
+        if (mayClassMap != null) {
+            mayClassMap.forEach((index, mayClasses) -> {
+                for (SootClass sc : mayClasses)
+                    spMethod.addMayClass(index, sc);
+            });
+        }
+
         StmtVisitor visitor = new StmtVisitor(spMethod);
         if (method.hasActiveBody()) {
             for (Unit unit : method.getActiveBody().getUnits()) {
@@ -137,7 +145,7 @@ public class SootWorld {
         while (!entryPoints.isEmpty()) {
             SootMethod sm = entryPoints.poll();
             System.out.println("Analyze Entry: " + sm);
-            visitMethod(sm);
+            visitMethod(sm, null);
         }
 //        if(!updateCallers.isEmpty()) {
 //            Set<SpMethod> copySet = new HashSet<>(updateCallers);

@@ -1,7 +1,7 @@
 package org.lambd;
 
-import org.lambd.anonotation.Annotation;
-import org.lambd.anonotation.AnnotationType;
+import org.lambd.annotation.Annotation;
+import org.lambd.annotation.AnnotationType;
 import org.lambd.obj.*;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transition.*;

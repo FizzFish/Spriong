@@ -1,18 +1,12 @@
-package org.lambd.anonotation;
+package org.lambd.annotation;
 
 import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.wrapper.SpSootClass;
 import org.lambd.wrapper.Wrapper;
-import soot.Scene;
 import soot.SootClass;
-import soot.SootMethod;
 
-import java.util.Arrays;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public enum AnnotationType {
     // 1. addbean 2. __init__ other bean
@@ -42,6 +36,18 @@ public enum AnnotationType {
         }
     },
     POST("Ljavax/ws/rs/POST;", false) {
+        @Override
+        public void apply(Wrapper wrapper, Map<String, String> elements) {
+            addEntry((SpMethod) wrapper);
+        }
+    },
+    GET("Ljavax/ws/rs/GET;", false) {
+        @Override
+        public void apply(Wrapper wrapper, Map<String, String> elements) {
+            addEntry((SpMethod) wrapper);
+        }
+    },
+    PUT("Ljavax/ws/rs/PUT;", false) {
         @Override
         public void apply(Wrapper wrapper, Map<String, String> elements) {
             addEntry((SpMethod) wrapper);

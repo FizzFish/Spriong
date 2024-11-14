@@ -1,6 +1,6 @@
 package org.lambd.wrapper;
 
-import org.lambd.anonotation.Annotation;
+import org.lambd.annotation.Annotation;
 import soot.*;
 
 import java.util.ArrayList;
