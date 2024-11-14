@@ -65,7 +65,9 @@ public class SootWorld {
     public List<SootMethod> getVisited() {
         return visited;
     }
-
+    public void addTransition(String signature, Transition transition) {
+        methodRefMap.computeIfAbsent(signature, k -> new ArrayList<Transition>()).add(transition);
+    }
     public AutoWired getAutoWired() {
         return autoWired;
     }

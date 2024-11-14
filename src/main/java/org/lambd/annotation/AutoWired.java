@@ -2,21 +2,23 @@ package org.lambd.annotation;
 
 import org.lambd.SootWorld;
 import org.lambd.SpMethod;
+import org.lambd.transition.SinkTrans;
+import org.lambd.transition.Weight;
 import org.lambd.wrapper.SpSootClass;
 import org.lambd.wrapper.Wrapper;
 import soot.*;
 import soot.tagkit.VisibilityAnnotationTag;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AutoWired {
     // autowired beans
     private Map<RefType, SpSootClass> autowrireds = new HashMap<>();
     // grpc services
     private Map<SootClass, List<String>> services = new HashMap<>();
+    // replace with actual source feature
+    private List<String> entryPoints = List.of("source");
+    private Map<String, Integer> sinks = Map.of("send",0);
     public void addBean(RefType type, SpSootClass cls)
     {
         autowrireds.put(type, cls);
@@ -55,6 +57,17 @@ public class AutoWired {
     public void scanAppClasses() {
         for (SootClass sc: Scene.v().getApplicationClasses()) {
             analyzeAnnotation(sc);
+            for (SootMethod sm: sc.getMethods()) {
+                analyzeAnnotation(sm);
+                String name = sm.getName();
+                if (entryPoints.contains(name))
+                    SootWorld.v().addEntryPoint(sm);
+                if (sinks.containsKey(name)) {
+                    // <javax.script.ScriptEngine: java.lang.Object eval(java.lang.String)>
+                    String signature = String.format("<%s: %s>", sc.getName(), sm.getSignature());
+                    SootWorld.v().addTransition(signature, new SinkTrans(signature, sinks.get(name), Weight.ONE));
+                }
+            }
             sc.getMethods().forEach(this::analyzeAnnotation);
         }
         for (SootClass sc: Scene.v().getApplicationClasses())
@@ -73,9 +86,11 @@ public class AutoWired {
         FastHierarchy fastHierarchy = Scene.v().getFastHierarchy();
         SootWorld sw = SootWorld.v();
         for (SootClass subClass: fastHierarchy.getSubclassesOf(sc)) {
-            for (SootMethod sm: subClass.getMethods())
+            for (SootMethod sm: subClass.getMethods()) {
+                // add grpc entry
                 if (serivceMethods.contains(sm.getName()))
                     sw.addEntryPoint(sm);
+            }
         }
     }
     private void analyzeAnnotation(Object obj) {
