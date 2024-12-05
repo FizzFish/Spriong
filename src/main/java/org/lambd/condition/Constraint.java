@@ -28,7 +28,11 @@ public class Constraint {
     }
     public boolean satisfy(Map<Integer, Local> varMap, PointerToSet pts) {
         for (Map.Entry<Integer, Local> entry: varMap.entrySet()) {
-            if (!satisfy(entry.getValue(), entry.getKey(), pts))
+            int index = entry.getKey();
+            // 有的arg没有要求
+            if (!paramRelations.containsKey(index))
+                continue;
+            if (!satisfy(entry.getValue(), index, pts))
                 return false;
         }
         return true;
@@ -36,6 +40,8 @@ public class Constraint {
     public boolean satisfy(Local var, int index, PointerToSet pts) {
         Set<SootMethod> newSet = new HashSet<>();
         List<SootField> fields = paramRelations.get(index);
+        if (fields==null)
+            System.out.println();
         pts.varFields(var, fields).forEach(p -> {
             newSet.addAll(StmtVisitor.calleeSetFromPointer(invoke, p));
         });

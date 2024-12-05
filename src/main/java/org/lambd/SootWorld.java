@@ -1,6 +1,9 @@
 package org.lambd;
 
 import org.lambd.annotation.AutoWired;
+import org.lambd.obj.RealObj;
+import org.lambd.obj.SourceObj;
+import org.lambd.pointer.PointerToSet;
 import org.lambd.transformer.Converter;
 import org.lambd.transformer.SpStmt;
 import org.lambd.transition.*;
@@ -12,6 +15,9 @@ import soot.options.Options;
 
 import java.io.File;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * 1.通过soot分析所有相关的jar包
@@ -91,10 +97,21 @@ public class SootWorld {
             return true;
         return false;
     }
-    public void visitMethod(SpMethod spMethod) {
+    private void handleSource(SpMethod entry) {
+        SootMethod method = entry.getSootMethod();
+        PointerToSet pts = entry.getPtset();
+        for (int i = 0; i < method.getParameterCount(); ++i) {
+            SourceObj obj = new SourceObj(method.getParameterType(i), null);
+            pts.setParamObjMap(i, Set.of(obj));
+        }
+        SourceObj thisObj = new SourceObj(method.getDeclaringClass().getType(), null);
+        pts.setParamObjMap(-1, Set.of(thisObj));
+    }
+    public void visitMethod(SpMethod spMethod, Consumer<SpMethod> supplier) {
         SootMethod method = spMethod.getSootMethod();
         visited.add(method);
         spMethod.visit();
+        supplier.accept(spMethod);
 
         StmtVisitor visitor = new StmtVisitor(spMethod);
         if (method.hasActiveBody()) {
@@ -137,7 +154,7 @@ public class SootWorld {
         while (!entryPoints.isEmpty()) {
             SootMethod sm = entryPoints.poll();
             System.out.println("Analyze Entry: " + sm);
-            visitMethod(getMethod(sm));
+            visitMethod(getMethod(sm), method -> handleSource(method));
         }
 //        if(!updateCallers.isEmpty()) {
 //            Set<SpMethod> copySet = new HashSet<>(updateCallers);

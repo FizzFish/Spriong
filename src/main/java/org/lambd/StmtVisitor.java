@@ -52,8 +52,6 @@ public class StmtVisitor {
             // TODO
         } else if (stmt instanceof SwitchStmt switchStmt) {
             // case(var)
-//            Value val = switchStmt.getKey();
-//            List<Unit> targets = switchStmt.getTargets();
             Unit defaultTarget = switchStmt.getDefaultTarget();
             if (switchStmt instanceof LookupSwitchStmt lookupSwitchStmt) {
                 lookupSwitchStmt.getLookupValues().forEach(value -> {
@@ -133,7 +131,7 @@ public class StmtVisitor {
                     // FormatObj需要查看callSite的Obj，还需要判断是否需要增加Constraint
                      Set<SootMethod> calleeSet = calleeSetFromPointer(invoke, vp);
                     Constraint constraint = new Constraint(vp.paramRelations(), invoke, calleeSet);
-                    container.getContext().addConstraint(constraint);
+                    container.getSummary().addConstraint(constraint);
 
                      for (SootMethod callee: calleeSet) {
                          if (callee != null)
@@ -164,9 +162,15 @@ public class StmtVisitor {
         PointerToSet ptset = container.getPtset();
         PointerToSet calleePtset = callee.getPtset();
         for (int i = -1; i < invoke.getArgCount(); ++i) {
-            if (invoke instanceof StaticInvokeExpr)
-                continue;
-            Value arg = invoke.getArg(i);
+            Value arg;
+            if (i == -1) {
+                if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
+                    arg = instanceInvokeExpr.getBase();
+                } else
+                    continue;
+            } else {
+                arg = invoke.getArg(i);
+            }
             if (arg instanceof Local local) {
                 Set<RealObj> objs = ptset.getVarPointer(local).getRealObjs();
                 calleePtset.setParamObjMap(i, objs);
@@ -176,9 +180,15 @@ public class StmtVisitor {
     private Effect matchEffect(InvokeExpr invoke, SpMethod callee) {
         Map<Integer, Local> varMap = new HashMap<>();
         for (int i = -1; i < invoke.getArgCount(); ++i) {
-            if (invoke instanceof StaticInvokeExpr)
-                continue;
-            Value arg = invoke.getArg(i);
+            Value arg;
+            if (i == -1) {
+                if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
+                    arg = instanceInvokeExpr.getBase();
+                } else
+                    continue;
+            } else {
+                arg = invoke.getArg(i);
+            }
             if (arg instanceof Local local) {
                 varMap.put(i, local);
             }
@@ -192,6 +202,8 @@ public class StmtVisitor {
      * 这里想解决callgraph中的环问题，但没有处理好[TODO]
      */
     private void apply(SootMethod callee, SpStmt stmt) {
+        if (callee == null)
+            return;
         applyInternal(callee, stmt);
         // update neo4j callgraph
         SootWorld.v().updateNeo4jRelation(container.getSootMethod(), callee);
@@ -216,8 +228,7 @@ public class StmtVisitor {
             spCallee.caller = container;
         }
         // 第一次访问，或者没有合适的函数摘要
-        handleArguments(invoke, spCallee);
-        world.visitMethod(spCallee);
+        world.visitMethod(spCallee, method -> handleArguments(invoke, method));
         spCallee.getSummary().applyLastEffect(container, stmt);
     }
 

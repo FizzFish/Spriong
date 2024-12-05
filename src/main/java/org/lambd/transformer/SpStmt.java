@@ -21,9 +21,6 @@ public class SpStmt {
         this.index = index;
         this.condition = Condition.ROOT;
     }
-    public void setContext(Condition condition) {
-        this.condition = condition;
-    }
     public Stmt getStmt() {
         return stmt;
     }

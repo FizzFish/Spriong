@@ -37,6 +37,8 @@ public abstract class Obj {
         return stmt;
     }
     public Condition getCondition() {
+        if (stmt == null)
+            return Condition.ROOT;
         return stmt.getCondition();
     }
     public abstract Obj castClone(SpStmt stmt, @Nullable Type newType);

@@ -47,6 +47,8 @@ public abstract class Pointer {
         Map<Integer, List<SootField>> result = new HashMap<>();
         for (Obj obj : objMap.values()) {
             if (obj instanceof FormatObj fObj) {
+                if (fObj.getFields() == null)
+                    System.out.println();
                 result.put(fObj.getIndex(), fObj.getFields());
             }
         }

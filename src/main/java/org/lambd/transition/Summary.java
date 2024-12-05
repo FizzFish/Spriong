@@ -2,6 +2,7 @@ package org.lambd.transition;
 
 import org.lambd.SootWorld;
 import org.lambd.SpMethod;
+import org.lambd.condition.Constraint;
 import org.lambd.condition.Context;
 import org.lambd.transformer.SpStmt;
 import soot.Local;
@@ -20,20 +21,30 @@ import java.util.stream.Collectors;
 public class Summary {
     private SpMethod container;
     private Map<Context, Effect> effectMap = new HashMap<>();
+    private Context currContext;
+    private Effect currEffect;
     public Summary(SpMethod container) {
         this.container = container;
     }
+    public void newContext() {
+        currContext = new Context(container);
+        currEffect = new Effect();
+        effectMap.put(currContext, currEffect);
+    }
     public void addReturn(RefType type) {
-        effectMap.get(container.getContext()).addReturn(type);
+        currEffect.addReturn(type);
     }
     public void addTransition(int from, int to, Weight w, SpStmt stmt) {
-        effectMap.get(container.getContext()).addTransition(from, to, w, stmt);
+        currEffect.addTransition(from, to, w, stmt);
     }
     public void addSink(String sink, int index, Weight weight, SpStmt stmt) {
-        effectMap.get(container.getContext()).addSink(sink, index, weight, stmt);
+        currEffect.addSink(sink, index, weight, stmt);
     }
     public void applyLastEffect(SpMethod caller, SpStmt stmt) {
-        effectMap.get(container.getContext()).apply(caller, stmt);
+        currEffect.apply(caller, stmt);
+    }
+    public void addConstraint(Constraint constraint) {
+        currContext.addConstraint(constraint);
     }
     public void print(boolean simple) {
         effectMap.values().forEach(e -> e.print(simple, container.getName()));

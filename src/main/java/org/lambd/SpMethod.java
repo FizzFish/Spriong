@@ -2,8 +2,6 @@ package org.lambd;
 
 import org.lambd.annotation.Annotation;
 import org.lambd.annotation.AnnotationType;
-import org.lambd.condition.Condition;
-import org.lambd.condition.Context;
 import org.lambd.obj.*;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transformer.SpStmt;
@@ -22,13 +20,12 @@ public class SpMethod implements Wrapper {
     private Summary summary;
     private ObjManager manager;
     private PointerToSet ptset;
-    private List<SpStmt> stmts;
+    private List<SpStmt> stmts = new ArrayList<>();
     private List<Annotation> annotionList = new ArrayList<>();
     // 第i个参数可能的类型
     private Map<Integer, Set<SootClass>> mayClassMap = new HashMap<>();
     private State state;
     public SpMethod caller;
-    private Context context;
     public SpMethod(SootMethod sootMethod) {
         this.name = sootMethod.getName();
         this.sootMethod = sootMethod;
@@ -38,9 +35,12 @@ public class SpMethod implements Wrapper {
         if (state == State.UNINITIALZED) {
             state = State.VISITED;
             summary = new Summary(this);
+            summary.newContext();
             ptset = new PointerToSet(this);
             manager = new OneObjManager(this, ptset);
-            context = new Context(this);
+        } else {
+            // 后面再次访问时，初始化context
+            summary.newContext();
         }
     }
     public boolean visited() {
@@ -48,9 +48,6 @@ public class SpMethod implements Wrapper {
     }
     public void addStmts(SpStmt stmt) {
         stmts.add(stmt);
-    }
-    public Context getContext() {
-        return context;
     }
     public List<SpStmt> getStmts() {
         return stmts;
@@ -144,7 +141,7 @@ public class SpMethod implements Wrapper {
     public void handleReturn(SpStmt stmt, RefType type) {
         Value val = getParameter(stmt, -2);
         if (val instanceof Local lvar) {
-            Obj obj = new GenObj(type, stmt);
+            Obj obj = new SourceObj(type, stmt);
             ptset.getVarPointer(lvar).add(obj);
         }
     }
