@@ -1,6 +1,7 @@
 package org.lambd;
 
 import com.google.common.collect.HashBasedTable;
+import org.lambd.condition.Constraint;
 import soot.*;
 import soot.jimple.InvokeExpr;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -46,12 +47,16 @@ public class SpHierarchy {
             return subsignature.resolve();
         return dispatch(cls, subsignature);
     }
+    // 为了决定是否生成条件，需要判断一个methodRef是否会有多个实现者
+    // TODO:由于interface中的default实现不易判断，且出现的可能性非常小，暂不分析这种情况
+    // 生成一个Constraint，即[recvClass，superClass]的区间
     public SootMethod dispatch(SootClass receiverClass, SootMethodRef methodRef) {
-        // check the subclass relation between the receiver class and
-        // the class of method reference to avoid the unexpected method found
-        Hierarchy hierarchy = Scene.v().getActiveHierarchy();
+        // 判断receiverClass是否是declaringClass的子类或者实现者，但这个代价是比较大的
+        // 我们假定程序没有错误，跳过这个判断
+        /**
         if (!hierarchy.isClassSubclassOfIncluding(receiverClass, methodRef.getDeclaringClass()))
             return null;
+         */
         NumberedString subsignature = methodRef.getSubSignature();
         SootMethod target = dispatchTable.get(receiverClass, subsignature);
         if (target == null) {
@@ -64,11 +69,7 @@ public class SpHierarchy {
     }
     private SootMethod lookupMethod(SootClass jclass, NumberedString subsignature,
                                  boolean allowAbstract) {
-        // JVM Spec. (11 Ed.), 5.4.3.3 Method Resolution
-        // 1. If C is an interface, method resolution throws
-        // an IncompatibleClassChangeError. TODO: what does this mean???
-
-        // 2. Otherwise, method resolution attempts to locate the
+        // 1. Otherwise, method resolution attempts to locate the
         // referenced method in C and its superclasses
         Hierarchy hierarchy = Scene.v().getActiveHierarchy();
         for (SootClass c = jclass; c != null && c.hasSuperclass(); c = c.getSuperclass()) {
@@ -77,8 +78,9 @@ public class SpHierarchy {
                 return method;
             }
         }
-        // 3. Otherwise, method resolution attempts to locate the
+        // 2. Otherwise, method resolution attempts to locate the
         // referenced method in the superinterfaces of the specified class C
+        // 可能函数存在于interface的default实现中，这种情况比较少
         for (SootClass c = jclass; c != null && c.hasSuperclass(); c = c.getSuperclass()) {
             for (SootClass iface : c.getInterfaces()) {
                 SootMethod method = lookupMethodFromSuperinterfaces(
@@ -89,10 +91,6 @@ public class SpHierarchy {
             }
         }
         return null;
-        // TODO:
-        //  1. check accessibility
-        //  2. handle phantom methods
-        //  3. double-check correctness
     }
 
     private SootMethod lookupMethodFromSuperinterfaces(

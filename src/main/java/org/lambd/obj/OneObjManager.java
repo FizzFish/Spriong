@@ -2,6 +2,7 @@ package org.lambd.obj;
 
 import org.lambd.SpMethod;
 import org.lambd.pointer.*;
+import org.lambd.transformer.SpStmt;
 import org.lambd.utils.Utils;
 import soot.Local;
 import soot.SootField;
@@ -37,10 +38,10 @@ public class OneObjManager implements ObjManager {
     /**
      * x = y.f: pointer(x) merge pointer(y.f)
      */
-    public void loadField(Local to, Local base, SootField field, Stmt stmt) {
+    public void loadField(Local to, Local base, SootField field) {
+        VarPointer toPointer = ptset.getVarPointer(to);
         ptset.getLocalObjs(base).forEach(obj -> {
-            InstanceField fromPointer = ptset.getInstanceField(obj, field, stmt);
-            VarPointer toPointer = ptset.getVarPointer(to);
+            InstanceField fromPointer = ptset.getInstanceField(obj, field);
             ptset.copy(fromPointer, toPointer);
         });
     }
@@ -61,10 +62,10 @@ public class OneObjManager implements ObjManager {
      * 其实Spriong已经是Obj敏感的了，但是对于跨函数的FormatObj的field写还是应该记录下来，因为会影响caller的数据流关系
      * 而对于普通的Obj则不需要
      */
-    public void storeField(Local base, SootField field, Local from, Stmt stmt) {
+    public void storeField(Local base, SootField field, Local from, SpStmt stmt) {
         VarPointer fromPointer = ptset.getVarPointer(from);
         ptset.getLocalObjs(base).forEach(obj -> {
-            InstanceField toPointer = ptset.getInstanceField(obj, field, stmt);
+            InstanceField toPointer = ptset.getInstanceField(obj, field);
             if (obj instanceof FormatObj formatObj)
                 ptset.storeAlias(fromPointer, formatObj, field, stmt);
             ptset.copy(fromPointer, toPointer);
@@ -84,10 +85,10 @@ public class OneObjManager implements ObjManager {
      * x = y[i]: pointer(x) merge pointer(y[i])
      * 不关注数组索引，而是将y[]视作一个类似field的pointer，这里我们将这个数组field标记为Field("[*]")
      */
-    public void loadArray(Local to, Local base, Stmt stmt) {
+    public void loadArray(Local to, Local base, SpStmt stmt) {
         ptset.getLocalObjs(base).forEach(obj -> {
 //            assert obj instanceof ArrayObj;
-            InstanceField fromPointer = ptset.getInstanceField(obj, Utils.arrayField, stmt);
+            InstanceField fromPointer = ptset.getInstanceField(obj, Utils.arrayField);
             VarPointer toPointer = ptset.getVarPointer(to);
             ptset.copy(fromPointer, toPointer);
         });
@@ -97,13 +98,13 @@ public class OneObjManager implements ObjManager {
      * x[i] = y: pointer(x[i]) merge pointer(y)
      * 同样，理论上也需要进行alias分析
      */
-    public void storeArray(Local base, Local from, Stmt stmt) {
+    public void storeArray(Local base, Local from, SpStmt stmt) {
         // x[i] = y
         ptset.getLocalObjs(base).forEach(obj -> {
             VarPointer fromPointer = ptset.getVarPointer(from);
             if (obj instanceof FormatObj formatObj)
                 ptset.storeAlias(fromPointer, formatObj, Utils.arrayField, stmt);
-            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayField, stmt);
+            InstanceField toPointer = ptset.getInstanceField(obj, Utils.arrayField);
             ptset.copy(fromPointer, toPointer);
         });
     }

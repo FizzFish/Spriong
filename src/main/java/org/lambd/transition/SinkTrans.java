@@ -1,6 +1,7 @@
 package org.lambd.transition;
 
 import org.lambd.SpMethod;
+import org.lambd.transformer.SpStmt;
 import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
 
@@ -12,8 +13,8 @@ public class SinkTrans implements Transition {
     private int argIndex;
     private Weight weight;
     // method.param(index) -(fraction)-> sink
-    private Stmt born;
-    public SinkTrans(String sink, int index, Weight weight, Stmt born)
+    private SpStmt born;
+    public SinkTrans(String sink, int index, Weight weight, SpStmt born)
     {
         this.argIndex = index;
         this.weight = weight;
@@ -49,7 +50,7 @@ public class SinkTrans implements Transition {
         return String.format("%s", weight);
     }
     @Override
-    public void apply(SpMethod caller, Stmt stmt) {
+    public void apply(SpMethod caller, SpStmt stmt) {
         caller.handleSink(stmt, sinkDes, argIndex, weight);
     }
 }

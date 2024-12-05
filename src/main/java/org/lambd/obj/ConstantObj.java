@@ -1,14 +1,15 @@
 package org.lambd.obj;
 
-import soot.RefType;
+import org.lambd.SpMethod;
+import org.lambd.transformer.SpStmt;
 import soot.Type;
 import soot.jimple.Constant;
 import soot.jimple.Stmt;
 import soot.jimple.StringConstant;
 
-public class ConstantObj extends TypeObj {
+public class ConstantObj extends RealObj {
     private Constant constant;
-    public ConstantObj(Type type, Stmt stmt, Constant constant)
+    public ConstantObj(Type type, SpStmt stmt, Constant constant)
     {
         super(type, stmt);
         this.constant = constant;

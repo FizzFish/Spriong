@@ -1,6 +1,7 @@
 package org.lambd.transition;
 
 import org.lambd.SpMethod;
+import org.lambd.transformer.SpStmt;
 import org.lambd.utils.PrimeGenerator;
 import org.lambd.utils.Utils;
 import soot.jimple.Stmt;
@@ -13,16 +14,16 @@ import java.util.Objects;
 public class ArgTrans implements Transition {
     private int from, to;
     private Weight weight;
-    private Stmt born;
-    public ArgTrans(int from, int to, Weight weight, Stmt born) {
+    private SpStmt born;
+    public ArgTrans(int from, int to, Weight weight, SpStmt born) {
         this.from = from;
         this.to = to;
         this.weight = weight;
         this.born = born;
     }
     @Override
-    public void apply(SpMethod method, Stmt stmt) {
-        method.handleTransition(stmt, from, to, weight);
+    public void apply(SpMethod caller, SpStmt stmt) {
+        caller.handleTransition(stmt, from, to, weight);
     }
 
     public String toString() {

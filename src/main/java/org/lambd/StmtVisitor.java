@@ -1,14 +1,15 @@
 package org.lambd;
 
+import org.lambd.condition.Condition;
+import org.lambd.condition.Constraint;
 import org.lambd.obj.*;
-import org.lambd.pointer.InstanceField;
+import org.lambd.pointer.Pointer;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.pointer.VarPointer;
-import org.lambd.utils.Utils;
+import org.lambd.transformer.SpStmt;
+import org.lambd.transition.Effect;
 import soot.*;
 import soot.jimple.*;
-import soot.jimple.toolkits.callgraph.CallGraph;
-import soot.jimple.toolkits.callgraph.Edge;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,27 +21,62 @@ import java.util.stream.Collectors;
  */
 public class StmtVisitor {
     private SpMethod container;
+    Map<Stmt, Condition> conditionMap = new HashMap<>();
+    private Condition currentCondition;
     public StmtVisitor(SpMethod method) {
-        this.container = method;
+        this(method, Condition.ROOT);
     }
-    public void visit(Stmt stmt) {
+    public StmtVisitor(SpMethod method, Condition context) {
+        this.container = method;
+        currentCondition = context;
+    }
+    public void visit(SpStmt spStmt) {
+        Stmt stmt = spStmt.getStmt();
+        if (conditionMap.containsKey(stmt))
+            currentCondition = conditionMap.get(stmt);
         if (stmt instanceof IdentityStmt) {
-            visit((IdentityStmt) stmt);
+            visitIdentity(spStmt);
         } else if (stmt instanceof AssignStmt) {
-            visit((AssignStmt) stmt);
+            visitAssign(spStmt);
         } else if (stmt instanceof InvokeStmt) {
-            visit((InvokeStmt) stmt);
+            visitInvoke(spStmt);
         } else if (stmt instanceof ReturnStmt) {
-            visit((ReturnStmt) stmt);
+            visitReturn(spStmt);
+        } else if (stmt instanceof IfStmt ifStmt) {
+            String repr = ifStmt.getCondition().toString();
+            Condition cond = new Condition(repr, currentCondition);
+            currentCondition = cond;
+            Stmt target = ifStmt.getTarget();
+            conditionMap.put(target, cond.not());
+        } else if (stmt instanceof GotoStmt) {
+            // TODO
+        } else if (stmt instanceof SwitchStmt switchStmt) {
+            // case(var)
+//            Value val = switchStmt.getKey();
+//            List<Unit> targets = switchStmt.getTargets();
+            Unit defaultTarget = switchStmt.getDefaultTarget();
+            if (switchStmt instanceof LookupSwitchStmt lookupSwitchStmt) {
+                lookupSwitchStmt.getLookupValues().forEach(value -> {
+                    int v = value.value;
+                    conditionMap.put((Stmt) switchStmt.getTarget(v), new Condition(String.valueOf(v), currentCondition));
+                });
+            } else if (stmt instanceof TableSwitchStmt tableSwitchStmt) {
+                int low = tableSwitchStmt.getLowIndex();
+                int high = tableSwitchStmt.getHighIndex();
+                for (int i = low; i <= high; i++)
+                    conditionMap.put((Stmt) switchStmt.getTarget(i), new Condition(String.valueOf(i), currentCondition));
+            }
+            conditionMap.put((Stmt) defaultTarget, new Condition("default", currentCondition));
         }
     }
 
     /**
      * source := @parameter0
      * this := @this: org.apache.commons.text.StringSubstitutor
-     * @param stmt
+     * @param spStmt
      */
-    public void visit(IdentityStmt stmt) {
+    public void visitIdentity(SpStmt spStmt) {
+        IdentityStmt stmt = (IdentityStmt) spStmt.getStmt();
         Local lhs = (Local) stmt.getLeftOp();
         Value val = stmt.getRightOp();
         if (val instanceof ParameterRef parameterRef) {
@@ -60,60 +96,48 @@ public class StmtVisitor {
      * (4)VirtualInvoke: resolve(invoke, obj.type)
      * (5)StaticInvoke:
      */
-    private void handleInvoke(Stmt stmt, InvokeExpr invoke) {
-        String signature = invoke.getMethodRef().getSignature();
-        boolean isSystemCallee = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
+    private void visitInvoke(SpStmt spStmt) {
+        InvokeStmt stmt = (InvokeStmt) spStmt.getStmt();
+        InvokeExpr invoke = stmt.getInvokeExpr();
+        handleInvoke(spStmt, invoke);
+    }
+    private void handleInvoke(SpStmt spStmt, InvokeExpr invoke) {
         SootWorld world = SootWorld.v();
-        if (!world.quickMethodRef(signature, container, stmt)) {
-            if (isSystemCallee) {
-                // 由于不进入真正的函数内部，而且不在已有知识库中，因此需要为lhs创建一个Obj对象
-                if (stmt instanceof AssignStmt) {
-                    Type type = invoke.getMethodRef().getReturnType();
-                    if (type instanceof RefType rt)
-                        container.handleReturn(stmt, rt);
-                }
-                return;
-            }
+        if (!world.quickMethodRef(invoke.getMethodRef(), container, spStmt)) {
             SpHierarchy cg = SpHierarchy.v();
             PointerToSet ptset = container.getPtset();
-            Map<Integer, Set<SootClass>> mayClassMap = handleArguments(invoke);
             // there are a lot of compromises here
             if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
                 Local base = (Local) instanceInvokeExpr.getBase();
                 VarPointer vp = ptset.getVarPointer(base);
-                if (vp.isEmpty()) {
-                    // base = Cls.field
-                    vp.add(new TypeObj((RefType) base.getType(), stmt));
-//                    System.err.println("vp is empty");
-                }
                 // special, virtual, interface
                 if (invoke instanceof SpecialInvokeExpr) {
+                    // 因为SpecialInvoke不涉及动态绑定，所以只需要在methodRef声明的class中即可找到
                      SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
-                     apply(callee, stmt, mayClassMap);
-                } else if (vp.allInterface()) {
+                     apply(callee, spStmt);
+                } else if (vp.isEmpty()) {
+                    // 某些情况下可能没有实际的变量，例如Cls.field或者由某些未分析的代码实例化
+                    // 检查是否需要创建Condition
+                    // 这里先不分析
+                    /**
                     if (base.getType() instanceof RefType rt) {
                         cg.getCallee(invoke, rt).forEach(callee -> {
-                            apply(callee, stmt, mayClassMap);
+                            apply(callee, spStmt);
                         });
                     }
+                     */
+                    System.err.println("No base for invoke: " + invoke);
                 } else {
                      // 找到所有可能得类型
-                     Set<SootClass> possibleSootClasses = new HashSet<>();
-                     vp.objs().forEach(obj -> {
-                         if (obj.getType() instanceof RefType rt) {
-                             SootClass sc = rt.getSootClass();
-                             if (!sc.isInterface()) {
-                                 possibleSootClasses.add(sc);
-                                 if (obj.isMayMultiple() && obj instanceof FormatObj formatObj)
-                                     possibleSootClasses.addAll(container.getMayClass(formatObj.getIndex()));
-                             }
-                         }
-                     });
-                     Set<SootMethod> calleeSet = possibleSootClasses.stream()
-                             .map(sc-> cg.resolve(invoke, sc)).collect(Collectors.toSet());
+                    // RealObj直接进入分析
+                    // FormatObj需要查看callSite的Obj，还需要判断是否需要增加Constraint
+                     Set<SootMethod> calleeSet = calleeSetFromPointer(invoke, vp);
+                    Constraint constraint = new Constraint(vp.paramRelations(), invoke, calleeSet);
+                    container.getContext().addConstraint(constraint);
+
                      for (SootMethod callee: calleeSet) {
                          if (callee != null)
-                            apply(callee, stmt, mayClassMap);
+                            apply(callee, spStmt);
                      }
                 }
             } else {
@@ -121,22 +145,45 @@ public class StmtVisitor {
                 if (invoke.getArgCount() == 0)
                     return;
                 SootMethod callee = cg.resolve(invoke, null);
-                apply(callee, stmt, mayClassMap);
+                apply(callee, spStmt);
             }
         }
     }
-    private Map<Integer, Set<SootClass>> handleArguments(InvokeExpr invoke) {
+    public static Set<SootMethod> calleeSetFromPointer(InvokeExpr invoke, Pointer pointer) {
+        Set<SootMethod> calleeSet = new HashSet<>();
+        SpHierarchy cg = SpHierarchy.v();
+        pointer.realObjs().forEach(obj -> {
+            if (obj.getType() instanceof RefType rt) {
+                SootClass sc = rt.getSootClass();
+                calleeSet.add(cg.resolve(invoke, sc));
+            }
+        });
+        return calleeSet;
+    }
+    private void handleArguments(InvokeExpr invoke, SpMethod callee) {
         PointerToSet ptset = container.getPtset();
-        Map<Integer, Set<SootClass>> mayClassMap = new HashMap<>();
-        for (int i = 0; i < invoke.getArgCount(); ++i) {
+        PointerToSet calleePtset = callee.getPtset();
+        for (int i = -1; i < invoke.getArgCount(); ++i) {
+            if (invoke instanceof StaticInvokeExpr)
+                continue;
             Value arg = invoke.getArg(i);
             if (arg instanceof Local local) {
-                for (Obj obj: ptset.getLocalObjs(local))
-                    if (obj.getType() instanceof RefType rt && !rt.getSootClass().isInterface())
-                        mayClassMap.computeIfAbsent(i, n -> new HashSet<>()).add(rt.getSootClass());
+                Set<RealObj> objs = ptset.getVarPointer(local).getRealObjs();
+                calleePtset.setParamObjMap(i, objs);
             }
         }
-        return mayClassMap;
+    }
+    private Effect matchEffect(InvokeExpr invoke, SpMethod callee) {
+        Map<Integer, Local> varMap = new HashMap<>();
+        for (int i = -1; i < invoke.getArgCount(); ++i) {
+            if (invoke instanceof StaticInvokeExpr)
+                continue;
+            Value arg = invoke.getArg(i);
+            if (arg instanceof Local local) {
+                varMap.put(i, local);
+            }
+        }
+        return callee.getSummary().match(varMap);
     }
 
     /**
@@ -144,21 +191,34 @@ public class StmtVisitor {
      * 否则先访问该函数，再应用其摘要效果
      * 这里想解决callgraph中的环问题，但没有处理好[TODO]
      */
-    private void apply(SootMethod callee, Stmt stmt, Map<Integer, Set<SootClass>> mayClassMap) {
+    private void apply(SootMethod callee, SpStmt stmt) {
+        applyInternal(callee, stmt);
+        // update neo4j callgraph
+        SootWorld.v().updateNeo4jRelation(container.getSootMethod(), callee);
+    }
+    private void applyInternal(SootMethod callee, SpStmt stmt) {
         SootWorld world = SootWorld.v();
         if (container.getSootMethod() == callee)
             return;
-        if (world.getVisited().contains(callee)) {
-            world.addActiveEdge(callee, container);
-            world.quickCallee(callee, container, stmt);
-        } else if (callee.getDeclaringClass().isApplicationClass()) {
-            // first visit callee
-            world.getMethod(callee).caller = container;
-            world.visitMethod(callee, mayClassMap);
-            world.quickCallee(callee, container, stmt);
+        InvokeExpr invoke = stmt.getStmt().getInvokeExpr();
+        if (!callee.getDeclaringClass().isApplicationClass()) {
+            return;
         }
-        // update neo4j callgraph
-        world.updateNeo4jRelation(container.getSootMethod(), callee);
+        SpMethod spCallee = world.getMethod(callee);
+        if (spCallee.visited()) {
+            Effect effect = matchEffect(invoke, spCallee);
+            if (effect != null) {
+                effect.apply(container, stmt);
+                return;
+            }
+        } else {
+            // first visited
+            spCallee.caller = container;
+        }
+        // 第一次访问，或者没有合适的函数摘要
+        handleArguments(invoke, spCallee);
+        world.visitMethod(spCallee);
+        spCallee.getSummary().applyLastEffect(container, stmt);
     }
 
     /**
@@ -167,32 +227,39 @@ public class StmtVisitor {
      * x=cast(T)y: 共享相同的ptset: getSameVP
      * x.f = y; c.f = y; x[i] = y
      */
-    public void visit(AssignStmt stmt) {
+    public void visitAssign(SpStmt spStmt) {
+        AssignStmt stmt = (AssignStmt) spStmt.getStmt();
         Value lhs = stmt.getLeftOp();
         Value rhs = stmt.getRightOp();
         PointerToSet pts = container.getPtset();
 
         if (rhs instanceof InvokeExpr invoke) {
-            handleInvoke(stmt, invoke);
+            handleInvoke(spStmt, invoke);
             return;
         }
         ObjManager objManager = container.getManager();
         if (lhs instanceof Local lvar) {
             if (rhs instanceof Local rvar) {
+                // x = y
                 objManager.copy(rvar, lvar);
             } else if (rhs instanceof AnyNewExpr newExpr) {
-                pts.addLocal(lvar, new TypeObj(newExpr.getType(), stmt));
+                // x = new T
+                pts.addLocal(lvar, new RealObj(newExpr.getType(), spStmt));
             } else if (rhs instanceof Constant constant) {
-                pts.addLocal(lvar, new ConstantObj(rhs.getType(), stmt, constant));
+                // x = (T) y
+                pts.addLocal(lvar, new ConstantObj(rhs.getType(), spStmt, constant));
             } else if (rhs instanceof FieldRef fieldRef) {
+                SootField field = fieldRef.getField();
                 // x = y.f
-                if (fieldRef instanceof InstanceFieldRef instanceFieldRef)
-                    objManager.loadField(lvar, (Local) instanceFieldRef.getBase(), instanceFieldRef.getField(), stmt);
-                else    // x = c.f
-                    objManager.loadStaticField(lvar, fieldRef.getClass(), fieldRef.getField());
+                if (fieldRef instanceof InstanceFieldRef instanceFieldRef) {
+                    Local base = (Local) instanceFieldRef.getBase();
+
+                    objManager.loadField(lvar, base, field);
+                } else    // x = c.f
+                    objManager.loadStaticField(lvar, fieldRef.getClass(), field);
             } else if (rhs instanceof ArrayRef arrayRef) {
                 // x = y[i]
-                objManager.loadArray(lvar, (Local) arrayRef.getBase(), stmt);
+                objManager.loadArray(lvar, (Local) arrayRef.getBase(), spStmt);
             } else if (rhs instanceof BinopExpr) {
             } else if (rhs instanceof UnopExpr) {
             } else if (rhs instanceof InstanceOfExpr) {
@@ -201,27 +268,29 @@ public class StmtVisitor {
                 // maybe need turn obj type
                 Value op = castExpr.getOp();
                 if (op instanceof Local rvar && lvar.getType() instanceof RefType rt)
-                    container.getPtset().handleCast(rvar, lvar, rt, stmt);
+                    container.getPtset().handleCast(rvar, lvar, rt, spStmt);
             } else {
                 System.out.println("unsupported assignment rhs: " + stmt);
             }
         } else if (lhs instanceof FieldRef fieldRef) {
-            // x.f = y
-            if (fieldRef instanceof InstanceFieldRef instanceFieldRef) {
-                if (rhs instanceof Local rvar)
-                    objManager.storeField((Local) instanceFieldRef.getBase(), instanceFieldRef.getField(), rvar, stmt);
-            } else {
-                // c.f = y
-                if (rhs instanceof Local rvar)
-                    objManager.storeStaticField(fieldRef.getClass(), fieldRef.getField(), rvar);
+            SootField field = fieldRef.getField();
+            if (rhs instanceof Local rvar) {
+                // x.f = y
+                if (fieldRef instanceof InstanceFieldRef instanceFieldRef) {
+                    Local base = (Local) instanceFieldRef.getBase();
+                    objManager.storeField(base, field, rvar, spStmt);
+                } else {
+                    // c.f = y
+                    objManager.storeStaticField(fieldRef.getClass(), field, rvar);
+                }
             }
         } else if (lhs instanceof ArrayRef arrayRef) {
             // x[i] = y
             Local base = (Local) arrayRef.getBase();
             if (rhs instanceof Local rvar) {
-                objManager.storeArray(base, rvar, stmt);
+                objManager.storeArray(base, rvar, spStmt);
             } else if (rhs instanceof Constant constant) {
-                ConstantObj constantObj = new ConstantObj(rhs.getType(), stmt, constant);
+                ConstantObj constantObj = new ConstantObj(rhs.getType(), spStmt, constant);
                 pts.addArray(base, constantObj);
             }
         } else {
@@ -229,14 +298,11 @@ public class StmtVisitor {
         }
     }
 
-    public void visit(InvokeStmt stmt) {
-        InvokeExpr invoke = stmt.getInvokeExpr();
-        handleInvoke(stmt, invoke);
-    }
-    public void visit(ReturnStmt stmt) {
+    public void visitReturn(SpStmt spStmt) {
+        ReturnStmt stmt = (ReturnStmt) spStmt.getStmt();
         Value retVal = stmt.getOp();
         if (retVal instanceof Local local) {
-            container.getPtset().genReturn(local, stmt);
+            container.getPtset().genReturn(local, spStmt);
         }
     }
 }

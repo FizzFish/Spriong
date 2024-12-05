@@ -2,8 +2,11 @@ package org.lambd;
 
 import org.lambd.annotation.Annotation;
 import org.lambd.annotation.AnnotationType;
+import org.lambd.condition.Condition;
+import org.lambd.condition.Context;
 import org.lambd.obj.*;
 import org.lambd.pointer.PointerToSet;
+import org.lambd.transformer.SpStmt;
 import org.lambd.transition.*;
 import org.lambd.wrapper.Wrapper;
 import soot.*;
@@ -19,11 +22,13 @@ public class SpMethod implements Wrapper {
     private Summary summary;
     private ObjManager manager;
     private PointerToSet ptset;
+    private List<SpStmt> stmts;
     private List<Annotation> annotionList = new ArrayList<>();
     // 第i个参数可能的类型
     private Map<Integer, Set<SootClass>> mayClassMap = new HashMap<>();
     private State state;
     public SpMethod caller;
+    private Context context;
     public SpMethod(SootMethod sootMethod) {
         this.name = sootMethod.getName();
         this.sootMethod = sootMethod;
@@ -35,7 +40,20 @@ public class SpMethod implements Wrapper {
             summary = new Summary(this);
             ptset = new PointerToSet(this);
             manager = new OneObjManager(this, ptset);
+            context = new Context(this);
         }
+    }
+    public boolean visited() {
+        return state == State.VISITED || state == State.FINISHED;
+    }
+    public void addStmts(SpStmt stmt) {
+        stmts.add(stmt);
+    }
+    public Context getContext() {
+        return context;
+    }
+    public List<SpStmt> getStmts() {
+        return stmts;
     }
     public void addMayClass(int index, SootClass mayClass) {
         mayClassMap.computeIfAbsent(index, n -> new HashSet<>()).add(mayClass);
@@ -65,7 +83,8 @@ public class SpMethod implements Wrapper {
                 .map(AnnotationType::getType)
                 .collect(Collectors.joining());
     }
-    private Value getParameter(Stmt stmt, int i) {
+    private Value getParameter(SpStmt spStmt, int i) {
+        Stmt stmt = spStmt.getStmt();
         if (stmt instanceof AssignStmt assignStmt) {
             if (i == -2)
                 return assignStmt.getLeftOp();
@@ -91,7 +110,8 @@ public class SpMethod implements Wrapper {
         }
         return null;
     }
-    public void handleTransition(Stmt stmt, int from, int to, Weight w) {
+    // 在返回caller的lhs时，需要做一个condition过滤
+    public void handleTransition(SpStmt stmt, int from, int to, Weight w) {
         Value fromVar = getParameter(stmt, from);
         Value toVar = getParameter(stmt, to);
         if (fromVar == toVar)
@@ -103,7 +123,7 @@ public class SpMethod implements Wrapper {
         if (fromVar instanceof Local l1 && toVar instanceof Local l2)
             ptset.update(l1, l2, w, stmt, type);
     }
-    public void handleLoadTransition(Stmt stmt) {
+    public void handleLoadTransition(SpStmt stmt) {
         // packages(String[])($7)
         Local arg0 = (Local) getParameter(stmt,0);
         SootWorld.v().analyzePackage(ptset.getArrayString(arg0));
@@ -116,15 +136,17 @@ public class SpMethod implements Wrapper {
      * @param index arg index can transfer to sink
      * @param w fields of arg can transfer to sink
      */
-    public void handleSink(Stmt stmt, String sink, int index, Weight w) {
+    public void handleSink(SpStmt stmt, String sink, int index, Weight w) {
         Value var = getParameter(stmt, index);
         if (var instanceof Local l)
             ptset.genSink(sink, w, l, stmt);
     }
-    public void handleReturn(Stmt stmt, RefType type) {
-        Value lhs = getParameter(stmt, -2);
-        if (lhs instanceof Local l)
-            ptset.updateLhs(l, type, stmt);
+    public void handleReturn(SpStmt stmt, RefType type) {
+        Value val = getParameter(stmt, -2);
+        if (val instanceof Local lvar) {
+            Obj obj = new GenObj(type, stmt);
+            ptset.getVarPointer(lvar).add(obj);
+        }
     }
     public void analyzeAnnotation() {
         VisibilityAnnotationTag tag = (VisibilityAnnotationTag) sootMethod.getTag("VisibilityAnnotationTag");

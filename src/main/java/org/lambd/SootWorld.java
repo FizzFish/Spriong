@@ -1,6 +1,8 @@
 package org.lambd;
 
 import org.lambd.annotation.AutoWired;
+import org.lambd.transformer.Converter;
+import org.lambd.transformer.SpStmt;
 import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
 import org.lambd.wrapper.SpSootClass;
@@ -71,22 +73,15 @@ public class SootWorld {
     public AutoWired getAutoWired() {
         return autoWired;
     }
-    public boolean quickMethodRef(String signature, SpMethod caller, Stmt stmt) {
+    public boolean quickMethodRef(SootMethodRef methodRef, SpMethod caller, SpStmt stmt) {
         // 1. transition or sink not enter
         // authenticate or some transport callback
+        // this.declaringClass, this.name, this.parameterTypes, this.returnType
+        String signature = methodRef.getSignature();
         if (methodRefMap.containsKey(signature)) {
             methodRefMap.get(signature).forEach(transition -> {
                 transition.apply(caller, stmt);
             });
-            return true;
-        }
-        return false;
-    }
-    public boolean quickCallee(SootMethod callee, SpMethod caller, Stmt stmt) {
-        // 1. transition or sink not enter
-        Summary summary = getMethod(callee).getSummary();
-        if (!summary.isEmpty()) {
-            summary.apply(caller, stmt);
             return true;
         }
         return false;
@@ -96,34 +91,24 @@ public class SootWorld {
             return true;
         return false;
     }
-    public void addActiveEdge(SootMethod callee, SpMethod caller) {
-        SpMethod spCallee = getMethod(callee);
-        if (!spCallee.isFinished()) {
-            spCallee.getSummary().addCaller(caller);
-        }
-    }
-    public void visitMethod(SootMethod method, Map<Integer, Set<SootClass>> mayClassMap) {
-        if (!method.getDeclaringClass().isApplicationClass() || visited.contains(method))
-            return;
+    public void visitMethod(SpMethod spMethod) {
+        SootMethod method = spMethod.getSootMethod();
         visited.add(method);
-        SpMethod spMethod = getMethod(method);
         spMethod.visit();
-        if (mayClassMap != null) {
-            mayClassMap.forEach((index, mayClasses) -> {
-                for (SootClass sc : mayClasses)
-                    spMethod.addMayClass(index, sc);
-            });
-        }
 
         StmtVisitor visitor = new StmtVisitor(spMethod);
         if (method.hasActiveBody()) {
-            for (Unit unit : method.getActiveBody().getUnits()) {
-                visitor.visit((Stmt) unit);
+            int index = 0;
+            for (Unit unit : spMethod.getSootMethod().getActiveBody().getUnits()) {
+                Stmt stmt = (Stmt) unit;
+                SpStmt spStmt = Converter.convert(stmt, spMethod, index);
+                visitor.visit(spStmt);
+                index++;
             }
         }
         spMethod.getSummary().print(true);
         spMethod.finish();
-        graph.updateMethodSummary(spMethod);
+
     }
     public void updateNeo4jRelation(SootMethod caller, SootMethod callee) {
         graph.createRelationWithMethods(caller, callee);
@@ -135,19 +120,24 @@ public class SootWorld {
         return classMap.computeIfAbsent(cls, k -> new SpSootClass(cls));
     }
     public void statistics() {
+
         int varSize = 0, objSize = 0;
         for (SootMethod method : visited) {
-            varSize += methodMap.get(method).getPtset().getVarSize();
-            objSize += methodMap.get(method).getPtset().getObjSize();
+            SpMethod spMethod = methodMap.get(method);
+            varSize += spMethod.getPtset().getVarSize();
+            objSize += spMethod.getPtset().getObjSize();
+            graph.updateMethodSummary(spMethod);
         }
         System.out.printf("there are %d functions, %d vars, %d objs\n",
                 visited.size(), varSize, objSize);
+        graph.flush();
+        System.out.println("Analyze end, update Neo4j database");
     }
     public void analyze() {
         while (!entryPoints.isEmpty()) {
             SootMethod sm = entryPoints.poll();
             System.out.println("Analyze Entry: " + sm);
-            visitMethod(sm, null);
+            visitMethod(getMethod(sm));
         }
 //        if(!updateCallers.isEmpty()) {
 //            Set<SpMethod> copySet = new HashSet<>(updateCallers);
@@ -160,8 +150,6 @@ public class SootWorld {
 //                System.out.println("Polled Element: " + element);
 //            }
 //        }
-        System.out.println("Analyze end, update Neo4j database");
-        graph.flush();
     }
 
     public void analyzePackage(Set<String> packageName) {

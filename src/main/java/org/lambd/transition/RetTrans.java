@@ -1,6 +1,7 @@
 package org.lambd.transition;
 
 import org.lambd.SpMethod;
+import org.lambd.transformer.SpStmt;
 import soot.RefType;
 import soot.jimple.Stmt;
 
@@ -21,7 +22,7 @@ public class RetTrans implements Transition {
     public int hashCode() {
         return type.hashCode();
     }
-    public void apply(SpMethod method, Stmt stmt) {
-        method.handleReturn(stmt, type);
+    public void apply(SpMethod caller, SpStmt stmt) {
+        caller.handleReturn(stmt, type);
     }
 }

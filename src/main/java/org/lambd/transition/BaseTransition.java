@@ -1,6 +1,7 @@
 package org.lambd.transition;
 
 import org.lambd.SpMethod;
+import org.lambd.transformer.SpStmt;
 import soot.jimple.Stmt;
 
 /**
@@ -20,7 +21,7 @@ public class BaseTransition implements Transition {
         return "(" + from + ", " + to + ", " + kind +")";
     }
     @Override
-    public void apply(SpMethod method, Stmt stmt) {
+    public void apply(SpMethod method, SpStmt stmt) {
         Weight relation = Weight.ONE;
         if (kind == 1)
             relation = Weight.COPY;

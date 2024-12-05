@@ -7,7 +7,6 @@ import soot.SootMethod;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.neo4j.driver.Values.parameters;
@@ -37,7 +36,7 @@ public class NeoGraph implements AutoCloseable {
             return;
         SootMethod sm = spMethod.getSootMethod();
         Summary summary = spMethod.getSummary();
-        String transitionStr = summary.getTRansition().entrySet().stream().map(entry -> {
+        String transitionStr = summary.getTransition().entrySet().stream().map(entry -> {
                 String value = entry.getValue().stream().map(ArgTrans::toString).collect(Collectors.joining(","));
                 return String.format("%s: %s", entry.getKey(), value);
             }).collect(Collectors.joining("\n"));
