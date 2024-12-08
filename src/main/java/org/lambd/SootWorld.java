@@ -31,7 +31,7 @@ public class SootWorld {
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
     private Map<SootClass, SpSootClass> classMap = new HashMap<>();
-    private Queue<SootMethod> entryPoints = new LinkedList<>();
+    private Set<SootMethod> entryPoints = new LinkedHashSet <>();
     private AutoWired autoWired = new AutoWired();
     private Set<SpMethod> updateCallers = new HashSet<>();
     private NeoGraph graph;
@@ -155,8 +155,9 @@ public class SootWorld {
     }
     public void analyze() {
         while (!entryPoints.isEmpty()) {
-            SootMethod sm = entryPoints.poll();
-            System.out.println("Analyze Entry: " + sm);
+            SootMethod sm = entryPoints.iterator().next();
+            entryPoints.remove(sm);
+            logger.info("EntryPoint {}", sm);
             visitMethod(getMethod(sm), method -> handleSource(method));
         }
 //        if(!updateCallers.isEmpty()) {
@@ -174,6 +175,7 @@ public class SootWorld {
 
     public void analyzePackage(Set<String> packageName) {
         //analyze all app classes at beginning
+        logger.info("Loading package: " + packageName);
         /**
         List<SootClass> classes = new ArrayList<>();
         packageName.forEach(pkg -> {
@@ -248,7 +250,6 @@ public class SootWorld {
         Scene.v().loadNecessaryClasses();
         autoWired.scanAppClasses();
         // 设置入口点
-        System.out.println("Entry points: " + entryPoints);
         Scene.v().setEntryPoints(new ArrayList<>(entryPoints));
         // 运行 Soot，生成ActiveBody
         PackManager.v().runPacks();
@@ -259,7 +260,8 @@ public class SootWorld {
     }
 
     public void addEntryPoint(SootMethod method) {
-        entryPoints.add(method);
+        if (!visited.contains(method))
+            entryPoints.add(method);
     }
     private List<String> excludeClasses() {
         return Arrays.asList("java.*", "javax.*", "sun.*", "jdk.*", "com.sun.*", "com.fasterxml.*",

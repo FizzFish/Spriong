@@ -66,9 +66,9 @@ public class FormatObj extends Obj implements Index {
             resolve();
         if (realObjs.isEmpty()) {
             if (fields.isEmpty())
-                logger.info("FormatObj[{}:{}] has no realObj", getContainer().getName(), index);
+                logger.debug("FormatObj[{}:{}] has no realObj", getContainer().getName(), index);
             else
-                logger.info("FormatObj[{}:{}] resolve filed {} failed", getContainer().getName(), index, Utils.fieldString(fields));
+                logger.debug("FormatObj[{}:{}] resolve filed {} failed", getContainer().getName(), index, Utils.fieldString(fields));
             realObjs.add(new GenObj(type, stmt));
         }
         return realObjs;

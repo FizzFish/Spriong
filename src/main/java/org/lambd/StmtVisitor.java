@@ -118,7 +118,7 @@ public class StmtVisitor {
                  SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
                  calleeSet.add(callee);
             } else if (vp.isEmpty()) {
-                System.err.println("No base for invoke: " + invoke);
+                logger.warn("No base for invoke: {}", invoke);
             } else if (type instanceof RefType rt && rt.getSootClass().isInterface() && vp.allFake()) {
                 // 某些情况下可能没有实际的变量，例如Cls.field或者由某些未分析的代码实例化
                 // 检查是否需要创建Condition
@@ -130,7 +130,7 @@ public class StmtVisitor {
                 // FormatObj需要查看callSite的Obj，还需要判断是否需要增加Constraint
                  SpHierarchy.calleeSetFromPointer(invoke, vp, calleeSet);
                  if (calleeSet.isEmpty())
-                    logger.info("{} cannot resolve {}, obj are {}", container.name, invoke, vp.getObjs());
+                    logger.debug("{} cannot resolve {}, obj are {}", container.name, invoke, vp.getObjs());
                  else {
                      Constraint constraint = new Constraint(vp.paramRelations(), invoke, calleeSet);
                      container.getSummary().addConstraint(constraint);

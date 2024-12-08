@@ -57,7 +57,7 @@ public class Effect {
             System.out.println(container + ": ");
             sinkMap.forEach((key, values) -> {
                 values.forEach(value -> {
-                    System.out.printf("%s: %s\n", key, value);
+                    System.out.printf("\t%s: %s\n", key, value);
                 });
             });
         }

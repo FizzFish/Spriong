@@ -15,7 +15,6 @@ public class LoadTransition implements Transition {
     @Override
     public void apply(SpMethod method, SpStmt stmt) {
         if (code.equals("loadClasses")) {
-           System.out.println("Loading Classes");
             method.handleLoadTransition(stmt);
         }
     }

@@ -241,7 +241,7 @@ public class PointerToSet {
     }
     public Set<String> getArrayString(Local base) {
         return getLocalObjs(base).stream()
-                .flatMap(obj -> getArrayIndex(obj).constantObjs()) // 将每个 constantObjs 流合并
+                .flatMap(obj -> getArrayIndex(obj).constantObjs())
                 .map(ConstantObj::getString)
                 .collect(Collectors.toSet());
     }

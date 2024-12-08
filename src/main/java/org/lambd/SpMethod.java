@@ -123,7 +123,8 @@ public class SpMethod implements Wrapper {
     public void handleLoadTransition(SpStmt stmt) {
         // packages(String[])($7)
         Local arg0 = (Local) getParameter(stmt,0);
-        SootWorld.v().analyzePackage(ptset.getArrayString(arg0));
+        Set<String> packageName = ptset.getArrayString(arg0);
+        SootWorld.v().analyzePackage(packageName);
     }
 
     /**
