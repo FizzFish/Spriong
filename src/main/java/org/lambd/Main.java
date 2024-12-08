@@ -17,7 +17,11 @@ public class Main {
         SootWorld sootWorld = SootWorld.v();
         String configFile = args[0];
         System.out.println("parse config: " + configFile);
-        Config config = loadConfig(configFile);
+        Config config = loadConfig("base.yml");
+        Config overridden = loadConfig(configFile);
+        assert overridden != null;
+        assert config != null;
+        config.merge(overridden);
         sootWorld.setConfig(config);
         sootWorld.initSootEnv();
 
