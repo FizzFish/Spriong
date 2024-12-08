@@ -2,7 +2,7 @@ package org.lambd.annotation;
 
 import org.lambd.SootWorld;
 import org.lambd.SpMethod;
-import org.lambd.wrapper.SpSootClass;
+import org.lambd.wrapper.SpClass;
 import org.lambd.wrapper.Wrapper;
 import soot.SootClass;
 
@@ -13,13 +13,13 @@ public enum AnnotationType {
     COMPONENT("Lorg/springframework/stereotype/Component;", true) {
         @Override
         public void apply(Wrapper wrapper, Map<String, String> elements) {
-            addBean((SpSootClass) wrapper);
+            addBean((SpClass) wrapper);
         }
     },
     SERVICE("Lorg/springframework/stereotype/Service;", true) {
         @Override
         public void apply(Wrapper wrapper, Map<String, String> elements) {
-            addBean((SpSootClass) wrapper);
+            addBean((SpClass) wrapper);
         }
     },
     SpringBootApplication("Lorg/springframework/boot/autoconfigure/SpringBootApplication;", true) {
@@ -75,12 +75,12 @@ public enum AnnotationType {
 
     private final String type;
     private final boolean classOrMethod;
-    private static void addBean(SpSootClass sc) {
+    private static void addBean(SpClass sc) {
         AutoWired aw = SootWorld.v().getAutoWired();
         aw.addBean(sc.getSootClass().getType(), sc);
         aw.wired(sc);
     }
-    private static void scanShellMethod(SpSootClass ssc) {
+    private static void scanShellMethod(SpClass ssc) {
         AutoWired aw = SootWorld.v().getAutoWired();
         aw.scanShellMethod(ssc);
     }

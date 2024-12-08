@@ -59,8 +59,8 @@ public class SinkTrans implements Transition {
         if (signature.equals(sinkDes)) {
             NeoGraph graph = SootWorld.v().getGraph();
             SootMethod sm = caller.getSootMethod();
-            SootWorld.v().getGraph().addSink(methodRef.getName(), signature, "def " + sinkDes);
-            graph.internalEdgeUpdate(sm.getName(), sm.getSignature(), methodRef.getName(), signature);
+            SootWorld.v().getGraph().addSink(methodRef.getName(), signature, "sink:  " + argIndex);
+            graph.updateNeo4jRelation(sm.getName(), sm.getSignature(), methodRef.getName(), signature);
         }
         caller.handleSink(stmt, sinkDes, argIndex, weight);
     }

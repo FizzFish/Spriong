@@ -4,7 +4,7 @@ import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.transition.SinkTrans;
 import org.lambd.transition.Weight;
-import org.lambd.wrapper.SpSootClass;
+import org.lambd.wrapper.SpClass;
 import org.lambd.wrapper.Wrapper;
 import soot.*;
 import soot.tagkit.VisibilityAnnotationTag;
@@ -13,21 +13,21 @@ import java.util.*;
 
 public class AutoWired {
     // autowired beans
-    private Map<RefType, SpSootClass> autowrireds = new HashMap<>();
+    private Map<RefType, SpClass> autowrireds = new HashMap<>();
     // grpc services
     private Map<SootClass, List<String>> services = new HashMap<>();
     // replace with actual source feature
     private List<String> entryPoints = List.of("source");
     private Map<String, Integer> sinks = Map.of("send",0);
-    public void addBean(RefType type, SpSootClass cls)
+    public void addBean(RefType type, SpClass cls)
     {
         autowrireds.put(type, cls);
     }
-    public SpSootClass getBean(RefType type)
+    public SpClass getBean(RefType type)
     {
         return autowrireds.get(type);
     }
-    public void wired(SpSootClass ssc)
+    public void wired(SpClass ssc)
     {
         List<SootMethod> constructors = new ArrayList<>();
         for (SootMethod method : ssc.getSootClass().getMethods()) {
@@ -47,7 +47,7 @@ public class AutoWired {
     {
         services.computeIfAbsent(sc, k -> new ArrayList<>()).add(service);
     }
-    public void scanShellMethod(SpSootClass ssc) {
+    public void scanShellMethod(SpClass ssc) {
         for (SootMethod method : ssc.getSootClass().getMethods()) {
             if (Annotation.hasAnnotation(method, AnnotationType.SHELLMETHOD)) {
                 SootWorld.v().addEntryPoint(method);
@@ -55,6 +55,7 @@ public class AutoWired {
         }
     }
     public void scanAppClasses() {
+        SootWorld sw = SootWorld.v();
         for (SootClass sc: Scene.v().getApplicationClasses()) {
             analyzeAnnotation(sc);
             for (SootMethod sm: sc.getMethods()) {
@@ -66,6 +67,10 @@ public class AutoWired {
                     // <javax.script.ScriptEngine: java.lang.Object eval(java.lang.String)>
                     String signature = String.format("<%s: %s>", sc.getName(), sm.getSignature());
                     SootWorld.v().addTransition(signature, new SinkTrans(signature, sinks.get(name), Weight.ONE));
+                }
+                if (sm.getSubSignature().equals(SpClass.CLINIT)) {
+                    SpClass spc = sw.getClass(sc);
+                    spc.setClinitMethod(sm);
                 }
             }
             sc.getMethods().forEach(this::analyzeAnnotation);
@@ -99,7 +104,7 @@ public class AutoWired {
         boolean classOrMethod = obj instanceof SootClass;
         if (classOrMethod) {
             tag = (VisibilityAnnotationTag) ((SootClass) obj).getTag("VisibilityAnnotationTag");
-            SpSootClass ssc = sw.getClass((SootClass) obj);
+            SpClass ssc = sw.getClass((SootClass) obj);
             ssc.scan();
         } else
             tag = (VisibilityAnnotationTag) ((SootMethod) obj).getTag("VisibilityAnnotationTag");

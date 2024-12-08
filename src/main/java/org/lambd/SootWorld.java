@@ -9,7 +9,7 @@ import org.lambd.transformer.Converter;
 import org.lambd.transformer.SpStmt;
 import org.lambd.transition.*;
 import org.lambd.utils.ClassNameExtractor;
-import org.lambd.wrapper.SpSootClass;
+import org.lambd.wrapper.SpClass;
 import soot.*;
 import soot.jimple.*;
 import soot.options.Options;
@@ -30,7 +30,7 @@ public class SootWorld {
     private Config config = null;
     private Map<String, List<Transition>> methodRefMap = new HashMap<>();
     private Map<SootMethod, SpMethod> methodMap = new HashMap<>();
-    private Map<SootClass, SpSootClass> classMap = new HashMap<>();
+    private Map<SootClass, SpClass> classMap = new HashMap<>();
     private Set<SootMethod> entryPoints = new LinkedHashSet <>();
     private AutoWired autoWired = new AutoWired();
     private Set<SpMethod> updateCallers = new HashSet<>();
@@ -110,8 +110,17 @@ public class SootWorld {
         }
     }
     public void visitMethod(SpMethod spMethod, Consumer<SpMethod> supplier) {
+        visitMethod(spMethod, supplier, false);
+    }
+    public void visitMethod(SpMethod spMethod, Consumer<SpMethod> supplier, boolean clinit) {
         SootMethod method = spMethod.getSootMethod();
         visited.add(method);
+        if (!clinit) {
+            // first visit clinit
+            SootClass sc = method.getDeclaringClass();
+            getClass(sc).visit();
+        }
+
         spMethod.visit();
         supplier.accept(spMethod);
         logger.debug("Visited {}", method.getSignature());
@@ -136,8 +145,8 @@ public class SootWorld {
     public SpMethod getMethod(SootMethod method) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method));
     }
-    public SpSootClass getClass(SootClass cls) {
-        return classMap.computeIfAbsent(cls, k -> new SpSootClass(cls));
+    public SpClass getClass(SootClass cls) {
+        return classMap.computeIfAbsent(cls, k -> new SpClass(cls));
     }
     public void statistics() {
 

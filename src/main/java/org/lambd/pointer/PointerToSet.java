@@ -1,6 +1,7 @@
 package org.lambd.pointer;
 
 import com.google.common.collect.HashBasedTable;
+import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.condition.Condition;
 import org.lambd.obj.*;
@@ -8,6 +9,7 @@ import org.lambd.transformer.SpStmt;
 import org.lambd.transition.Summary;
 import org.lambd.transition.Weight;
 import org.lambd.utils.Utils;
+import org.lambd.wrapper.SpClass;
 import soot.*;
 
 import java.util.*;
@@ -168,8 +170,8 @@ public class PointerToSet {
         return base.fieldPointer(Utils.arrayField);
     }
     public StaticField getStaticField(SootField field) {
-        return statics.computeIfAbsent(field,
-                f -> new StaticField(field));
+        SpClass sc = SootWorld.v().getClass(field.getDeclaringClass());
+        return sc.getStaticField(field);
     }
     private boolean canHoldSink(Type type) {
         /**

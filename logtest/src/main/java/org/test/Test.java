@@ -1,11 +1,10 @@
 package org.test;
 
 public class Test {
-
+    static Base o = new Sink();
     public static void main(String[] args) {
         String a = args[0];
         Wrapper w = new Wrapper();
-        Base o = new Sink();
         w.setF(o);
         w.call(a);
     }

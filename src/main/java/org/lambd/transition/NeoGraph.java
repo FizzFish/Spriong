@@ -16,6 +16,7 @@ public class NeoGraph implements AutoCloseable {
     private Driver driver = null;
     private String database = "neo4j";
     private final List<Map<String, String>> methodsToUpdate = new ArrayList<>();
+    private final List<Map<String, String>> sinksToUpdate = new ArrayList<>();
     private final List<Map<String, String>> relationshipsToUpdate = new ArrayList<>();
     private List<String> visited = new ArrayList<>();
     private List<Pair<String>> visitedEdge = new ArrayList<>();
@@ -48,7 +49,7 @@ public class NeoGraph implements AutoCloseable {
                 String value = entry.getValue().stream().map(SinkTrans::toString).collect(Collectors.joining(","));
                 return String.format("%s: %s", entry.getKey(), value);
             }).collect(Collectors.joining("\n"));
-        Map<String, String> methodMap = Map.of( "name", sm.getName(), "signature", sm.getSignature(), "transition", transitionStr, "sink", sinkStr,"color", "blue");
+        Map<String, String> methodMap = Map.of( "name", sm.getName(), "signature", sm.getSignature(), "transition", transitionStr, "sink", sinkStr);
         methodsToUpdate.add(methodMap);
     }
     public void addSink(String name, String signature, String sink) {
@@ -57,19 +58,10 @@ public class NeoGraph implements AutoCloseable {
         if (visited.contains(signature))
             return;
         visited.add(signature);
-        Map<String, String> methodMap = Map.of( "name", name, "signature", signature, "transition", "", "sink", sink, "color", "red");
-        methodsToUpdate.add(methodMap);
+        Map<String, String> sinkMap = Map.of( "name", name, "signature", signature, "sink", sink);
+        sinksToUpdate.add(sinkMap);
     }
-    public void updateNeo4jRelation(SootMethod caller, SootMethod callee) {
-        if (!save)
-            return;
-        String fromName = caller.getName();
-        String fromSignature = caller.getSignature();
-        String toName = callee.getName();
-        String toSignature = callee.getSignature();
-        internalEdgeUpdate(fromName, fromSignature, toName, toSignature);
-    }
-    public void internalEdgeUpdate(String fromName, String fromSignature, String toName, String toSignature) {
+    public void updateNeo4jRelation(String fromName, String fromSignature, String toName, String toSignature) {
         if (!save)
             return;
         Pair<String> edge = new Pair<>(fromSignature, toSignature);
@@ -95,11 +87,18 @@ public class NeoGraph implements AutoCloseable {
                 """;
                 tx.run(nodeUpdateQuery, parameters("methods", methodsToUpdate));
 
+                // 批量更新节点 (Method)
+                nodeUpdateQuery = """
+                    UNWIND sinks AS s
+                    CREATE (m:Sink {name: s.name, signature: s.signature, sink: s.sink})
+                """;
+                tx.run(nodeUpdateQuery, parameters("sinks", sinksToUpdate));
+
                 // 批量更新关系 (CALL)
                 String relationshipUpdateQuery = """
                     UNWIND $relationships AS rel
                     MATCH (m1:Method {name: rel.fromName, signature: rel.fromSignature})
-                    MATCH (m2:Method {name: rel.toName, signature: rel.toSignature})
+                    MATCH (m2:Method|Sink {name: rel.toName, signature: rel.toSignature})
                     MERGE (m1)-[r:CALL]->(m2)
                 """;
                 tx.run(relationshipUpdateQuery, parameters("relationships", relationshipsToUpdate));
