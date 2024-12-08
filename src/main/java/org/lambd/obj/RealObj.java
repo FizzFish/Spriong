@@ -18,4 +18,9 @@ public class RealObj extends Obj {
             return this;
         return new RealObj(newType, stmt);
     }
+
+    @Override
+    public boolean real() {
+        return true;
+    }
 }

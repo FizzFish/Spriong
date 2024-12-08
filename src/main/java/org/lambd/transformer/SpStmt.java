@@ -33,5 +33,8 @@ public class SpStmt {
     public Condition getCondition() {
         return condition;
     }
+    public String toString() {
+        return stmt.toString();
+    }
 
 }

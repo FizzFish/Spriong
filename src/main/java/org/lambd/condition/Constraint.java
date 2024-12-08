@@ -1,10 +1,13 @@
 package org.lambd.condition;
 
+import jdk.jshell.execution.Util;
+import org.lambd.SpHierarchy;
 import org.lambd.StmtVisitor;
 import org.lambd.obj.Obj;
 import org.lambd.obj.RealObj;
 import org.lambd.pointer.Pointer;
 import org.lambd.pointer.PointerToSet;
+import org.lambd.utils.Utils;
 import soot.Local;
 import soot.SootField;
 import soot.SootMethod;
@@ -40,11 +43,25 @@ public class Constraint {
     public boolean satisfy(Local var, int index, PointerToSet pts) {
         Set<SootMethod> newSet = new HashSet<>();
         List<SootField> fields = paramRelations.get(index);
-        if (fields==null)
-            System.out.println();
         pts.varFields(var, fields).forEach(p -> {
-            newSet.addAll(StmtVisitor.calleeSetFromPointer(invoke, p));
+            SpHierarchy.calleeSetFromPointer(invoke, p, newSet);
         });
+        if (newSet.isEmpty())
+            return true;
         return calleeSet.containsAll(newSet);
+    }
+    public String toString() {
+        return String.format("invoke:%s resolve %d callee, depend %s\n", invoke.getMethodRef().getName(),
+                calleeSet.size(), paramRelations.entrySet().stream()
+                        .collect(Collectors.toMap(Map.Entry::getKey, e -> Utils.fieldString(e.getValue()))));
+    }
+    public boolean equals(Object obj) {
+        if (obj instanceof Constraint c) {
+            return toString().equals(c.toString());
+        }
+        return false;
+    }
+    public int hashCode() {
+        return Objects.hash(invoke, paramRelations);
     }
 }

@@ -47,8 +47,6 @@ public abstract class Pointer {
         Map<Integer, List<SootField>> result = new HashMap<>();
         for (Obj obj : objMap.values()) {
             if (obj instanceof FormatObj fObj) {
-                if (fObj.getFields() == null)
-                    System.out.println();
                 result.put(fObj.getIndex(), fObj.getFields());
             }
         }
@@ -63,9 +61,8 @@ public abstract class Pointer {
     public void copyFrom(Pointer pointer) {
         objMap.putAll(pointer.objMap);
     }
-    public boolean allInterface() {
-        return false;
-//        return objs.stream().allMatch(Obj::isInterface);
+    public boolean allFake() {
+        return objMap.values().stream().noneMatch(Obj::real);
     }
     public boolean isEmpty() {
         return objMap.isEmpty();

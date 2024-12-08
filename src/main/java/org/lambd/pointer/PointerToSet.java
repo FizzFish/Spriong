@@ -27,18 +27,19 @@ public class PointerToSet {
         } catch (Exception e) {
             return;
         }
+        SpStmt start = new SpStmt(container, null, -1);
         // 生成FormatObj抽象参数对象
         List<Local> parameters = body.getParameterLocals();
         for (int i = 0; i < parameters.size(); i++) {
             Local var = parameters.get(i);
-            FormatObj obj = new FormatObj(var.getType(), null, i);
+            FormatObj obj = new FormatObj(var.getType(), start, i);
             addLocal(var, obj);
             paramMap.put(i, obj);
         }
         if (!container.getSootMethod().isStatic()) {
             Local thisVar = body.getThisLocal();
             Type type = container.getSootMethod().getDeclaringClass().getType();
-            FormatObj obj = new FormatObj(type, null, -1);
+            FormatObj obj = new FormatObj(type, start, -1);
             addLocal(thisVar, obj);
             paramMap.put(-1, obj);
         }

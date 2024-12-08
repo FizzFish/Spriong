@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 public abstract class Obj {
     protected final Type type;
-    private final SpStmt stmt;
+    protected final SpStmt stmt;
     protected Map<SootField, InstanceField> fieldPointer = new HashMap<>();
     public Obj(Type type, SpStmt stmt) {
         this.type = type;
@@ -48,4 +48,5 @@ public abstract class Obj {
     public InstanceField fieldPointer(SootField field) {
         return fieldPointer.computeIfAbsent(field, f -> new InstanceField(this, field));
     }
+    public abstract boolean real();
 }

@@ -2,6 +2,7 @@ package org.lambd;
 
 import com.google.common.collect.HashBasedTable;
 import org.lambd.condition.Constraint;
+import org.lambd.pointer.Pointer;
 import soot.*;
 import soot.jimple.InvokeExpr;
 import soot.jimple.toolkits.callgraph.CallGraph;
@@ -26,20 +27,29 @@ public class SpHierarchy {
         return cg;
     }
     private HashBasedTable<SootClass, NumberedString, SootMethod> dispatchTable = HashBasedTable.create();
+    public static void calleeSetFromPointer(InvokeExpr invoke, Pointer pointer, Set<SootMethod> calleeSet) {
+        SpHierarchy cg = SpHierarchy.v();
+        pointer.realObjs().forEach(obj -> {
+            if (obj.getType() instanceof RefType rt) {
+                SootClass sc = rt.getSootClass();
+                SootMethod sm = cg.resolve(invoke, sc);
+                if (sm != null)
+                    calleeSet.add(sm);
+            }
+        });
+    }
     /**
      * 获取unit对应的所有可能得callees
      * @return
      */
-    public Set<SootMethod> getCallee(InvokeExpr invoke, RefType type) {
+    public void getCallee(InvokeExpr invoke, RefType type, Set<SootMethod> methods) {
         Hierarchy hierarchy = Scene.v().getActiveHierarchy();
-        Set<SootMethod> methods = new HashSet();
         SootClass interfaceClass = type.getSootClass();
         NumberedString signature = invoke.getMethodRef().getSubSignature();
         for (SootClass sc: hierarchy.getImplementersOf(interfaceClass)) {
             if (!sc.isPhantom() && sc.declaresMethod(signature))
                 methods.add(sc.getMethod(signature));
         }
-        return methods;
     }
     public SootMethod resolve(InvokeExpr invoke, SootClass cls) {
         SootMethodRef subsignature = invoke.getMethodRef();

@@ -1,7 +1,8 @@
 package org.lambd;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lambd.annotation.AutoWired;
-import org.lambd.obj.RealObj;
 import org.lambd.obj.SourceObj;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transformer.Converter;
@@ -16,14 +17,13 @@ import soot.options.Options;
 import java.io.File;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * 1.通过soot分析所有相关的jar包
  * 2.从入口方法开始，分析所有方法visitMethod
  */
 public class SootWorld {
+    private static final Logger logger = LogManager.getLogger(SootWorld.class);
     private SootMethod entryMethod = null;
     public SootClass entryClass = null;
     private static SootWorld world = null;
@@ -104,19 +104,22 @@ public class SootWorld {
             SourceObj obj = new SourceObj(method.getParameterType(i), null);
             pts.setParamObjMap(i, Set.of(obj));
         }
-        SourceObj thisObj = new SourceObj(method.getDeclaringClass().getType(), null);
-        pts.setParamObjMap(-1, Set.of(thisObj));
+        if (!method.isStatic()) {
+            SourceObj thisObj = new SourceObj(method.getDeclaringClass().getType(), null);
+            pts.setParamObjMap(-1, Set.of(thisObj));
+        }
     }
     public void visitMethod(SpMethod spMethod, Consumer<SpMethod> supplier) {
         SootMethod method = spMethod.getSootMethod();
         visited.add(method);
         spMethod.visit();
         supplier.accept(spMethod);
+        logger.debug("Visited {}", method.getSignature());
 
         StmtVisitor visitor = new StmtVisitor(spMethod);
         if (method.hasActiveBody()) {
             int index = 0;
-            for (Unit unit : spMethod.getSootMethod().getActiveBody().getUnits()) {
+            for (Unit unit : method.getActiveBody().getUnits()) {
                 Stmt stmt = (Stmt) unit;
                 SpStmt spStmt = Converter.convert(stmt, spMethod, index);
                 visitor.visit(spStmt);

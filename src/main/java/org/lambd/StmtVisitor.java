@@ -1,5 +1,8 @@
 package org.lambd;
 
+import com.google.common.collect.HashBasedTable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lambd.condition.Condition;
 import org.lambd.condition.Constraint;
 import org.lambd.obj.*;
@@ -20,9 +23,11 @@ import java.util.stream.Collectors;
  * 2. InvokeStmt: 调用其他函数时也产生了数据流传播，精准的callee选择很重要（CHA、VTA）
  */
 public class StmtVisitor {
+    private static final Logger logger = LogManager.getLogger(StmtVisitor.class);
     private SpMethod container;
     Map<Stmt, Condition> conditionMap = new HashMap<>();
     private Condition currentCondition;
+
     public StmtVisitor(SpMethod method) {
         this(method, Condition.ROOT);
     }
@@ -54,10 +59,11 @@ public class StmtVisitor {
             // case(var)
             Unit defaultTarget = switchStmt.getDefaultTarget();
             if (switchStmt instanceof LookupSwitchStmt lookupSwitchStmt) {
-                lookupSwitchStmt.getLookupValues().forEach(value -> {
-                    int v = value.value;
-                    conditionMap.put((Stmt) switchStmt.getTarget(v), new Condition(String.valueOf(v), currentCondition));
-                });
+                int size = lookupSwitchStmt.getLookupValues().size();
+                for (int i = 0; i < size; i++) {
+                    int v = lookupSwitchStmt.getLookupValue(i);
+                    conditionMap.put((Stmt) switchStmt.getTarget(i), new Condition(String.valueOf(v), currentCondition));
+                }
             } else if (stmt instanceof TableSwitchStmt tableSwitchStmt) {
                 int low = tableSwitchStmt.getLowIndex();
                 int high = tableSwitchStmt.getHighIndex();
@@ -99,65 +105,61 @@ public class StmtVisitor {
         InvokeExpr invoke = stmt.getInvokeExpr();
         handleInvoke(spStmt, invoke);
     }
-    private void handleInvoke(SpStmt spStmt, InvokeExpr invoke) {
-        SootWorld world = SootWorld.v();
-        if (!world.quickMethodRef(invoke.getMethodRef(), container, spStmt)) {
-            SpHierarchy cg = SpHierarchy.v();
-            PointerToSet ptset = container.getPtset();
-            // there are a lot of compromises here
-            if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
-                Local base = (Local) instanceInvokeExpr.getBase();
-                VarPointer vp = ptset.getVarPointer(base);
-                // special, virtual, interface
-                if (invoke instanceof SpecialInvokeExpr) {
-                    // 因为SpecialInvoke不涉及动态绑定，所以只需要在methodRef声明的class中即可找到
-                     SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
-                     apply(callee, spStmt);
-                } else if (vp.isEmpty()) {
-                    // 某些情况下可能没有实际的变量，例如Cls.field或者由某些未分析的代码实例化
-                    // 检查是否需要创建Condition
-                    // 这里先不分析
-                    /**
-                    if (base.getType() instanceof RefType rt) {
-                        cg.getCallee(invoke, rt).forEach(callee -> {
-                            apply(callee, spStmt);
-                        });
-                    }
-                     */
-                    System.err.println("No base for invoke: " + invoke);
-                } else {
-                     // 找到所有可能得类型
-                    // RealObj直接进入分析
-                    // FormatObj需要查看callSite的Obj，还需要判断是否需要增加Constraint
-                     Set<SootMethod> calleeSet = calleeSetFromPointer(invoke, vp);
-                    Constraint constraint = new Constraint(vp.paramRelations(), invoke, calleeSet);
-                    container.getSummary().addConstraint(constraint);
-
-                     for (SootMethod callee: calleeSet) {
-                         if (callee != null)
-                            apply(callee, spStmt);
-                     }
-                }
+    private void analyzeCallee(InvokeExpr invoke, Set<SootMethod> calleeSet, PointerToSet ptset) {
+        SpHierarchy cg = SpHierarchy.v();
+        // there are a lot of compromises here
+        if (invoke instanceof InstanceInvokeExpr instanceInvokeExpr) {
+            Local base = (Local) instanceInvokeExpr.getBase();
+            VarPointer vp = ptset.getVarPointer(base);
+            Type type = base.getType();
+            // special, virtual, interface
+            if (invoke instanceof SpecialInvokeExpr) {
+                // 因为SpecialInvoke不涉及动态绑定，所以只需要在methodRef声明的class中即可找到
+                 SootMethod callee = cg.resolve(invoke, invoke.getMethodRef().getDeclaringClass());
+                 calleeSet.add(callee);
+            } else if (vp.isEmpty()) {
+                System.err.println("No base for invoke: " + invoke);
+            } else if (type instanceof RefType rt && rt.getSootClass().isInterface() && vp.allFake()) {
+                // 某些情况下可能没有实际的变量，例如Cls.field或者由某些未分析的代码实例化
+                // 检查是否需要创建Condition
+                // 这里先不分析
+                cg.getCallee(invoke, rt, calleeSet);
             } else {
-                // static prune
-                if (invoke.getArgCount() == 0)
-                    return;
-                SootMethod callee = cg.resolve(invoke, null);
-                apply(callee, spStmt);
+                 // 找到所有可能得类型
+                // RealObj直接进入分析
+                // FormatObj需要查看callSite的Obj，还需要判断是否需要增加Constraint
+                 SpHierarchy.calleeSetFromPointer(invoke, vp, calleeSet);
+                 if (calleeSet.isEmpty())
+                    logger.info("{} cannot resolve {}, obj are {}", container.name, invoke, vp.getObjs());
+                 else {
+                     Constraint constraint = new Constraint(vp.paramRelations(), invoke, calleeSet);
+                     container.getSummary().addConstraint(constraint);
+                 }
             }
+        } else {
+            // static prune
+            if (invoke.getArgCount() == 0)
+                return;
+            SootMethod callee = cg.resolve(invoke, null);
+            calleeSet.add(callee);
         }
     }
-    public static Set<SootMethod> calleeSetFromPointer(InvokeExpr invoke, Pointer pointer) {
-        Set<SootMethod> calleeSet = new HashSet<>();
-        SpHierarchy cg = SpHierarchy.v();
-        pointer.realObjs().forEach(obj -> {
-            if (obj.getType() instanceof RefType rt) {
-                SootClass sc = rt.getSootClass();
-                calleeSet.add(cg.resolve(invoke, sc));
-            }
-        });
-        return calleeSet;
+    private void handleInvoke(SpStmt spStmt, InvokeExpr invoke) {
+        SootWorld world = SootWorld.v();
+        boolean quickInvoke = world.quickMethodRef(invoke.getMethodRef(), container, spStmt);
+        boolean systemInvoke = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
+        if (!quickInvoke && !systemInvoke) {
+
+            PointerToSet ptset = container.getPtset();
+            Set<SootMethod> calleeSet = new HashSet<>();
+            analyzeCallee(invoke, calleeSet, ptset);
+            for (SootMethod callee : calleeSet) {
+                 if (callee != null)
+                     apply(callee, spStmt);
+             }
+        }
     }
+
     private void handleArguments(InvokeExpr invoke, SpMethod callee) {
         PointerToSet ptset = container.getPtset();
         PointerToSet calleePtset = callee.getPtset();
@@ -171,7 +173,7 @@ public class StmtVisitor {
             } else {
                 arg = invoke.getArg(i);
             }
-            if (arg instanceof Local local) {
+            if (arg instanceof Local local && local.getType() instanceof RefType) {
                 Set<RealObj> objs = ptset.getVarPointer(local).getRealObjs();
                 calleePtset.setParamObjMap(i, objs);
             }
