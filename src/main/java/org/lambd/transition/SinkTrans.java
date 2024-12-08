@@ -1,8 +1,11 @@
 package org.lambd.transition;
 
+import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.transformer.SpStmt;
 import org.lambd.utils.Utils;
+import soot.SootMethod;
+import soot.SootMethodRef;
 import soot.jimple.Stmt;
 
 /**
@@ -51,6 +54,14 @@ public class SinkTrans implements Transition {
     }
     @Override
     public void apply(SpMethod caller, SpStmt stmt) {
+        SootMethodRef methodRef = stmt.getStmt().getInvokeExpr().getMethodRef();
+        String signature = methodRef.getSignature();
+        if (signature.equals(sinkDes)) {
+            NeoGraph graph = SootWorld.v().getGraph();
+            SootMethod sm = caller.getSootMethod();
+            SootWorld.v().getGraph().addSink(methodRef.getName(), signature, "def " + sinkDes);
+            graph.internalEdgeUpdate(sm.getName(), sm.getSignature(), methodRef.getName(), signature);
+        }
         caller.handleSink(stmt, sinkDes, argIndex, weight);
     }
 }

@@ -208,7 +208,7 @@ public class StmtVisitor {
             return;
         applyInternal(callee, stmt);
         // update neo4j callgraph
-        SootWorld.v().updateNeo4jRelation(container.getSootMethod(), callee);
+        SootWorld.v().getGraph().updateNeo4jRelation(container.getSootMethod(), callee);
     }
     private void applyInternal(SootMethod callee, SpStmt stmt) {
         SootWorld world = SootWorld.v();

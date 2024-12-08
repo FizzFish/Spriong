@@ -130,8 +130,8 @@ public class SootWorld {
         spMethod.finish();
 
     }
-    public void updateNeo4jRelation(SootMethod caller, SootMethod callee) {
-        graph.createRelationWithMethods(caller, callee);
+    public NeoGraph getGraph() {
+        return graph;
     }
     public SpMethod getMethod(SootMethod method) {
         return methodMap.computeIfAbsent(method, k -> new SpMethod(method));

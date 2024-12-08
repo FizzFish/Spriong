@@ -1,6 +1,7 @@
 package org.lambd.transition;
 
 import org.lambd.SpMethod;
+import org.lambd.utils.Pair;
 import org.neo4j.driver.*;
 import soot.SootMethod;
 
@@ -14,8 +15,10 @@ import static org.neo4j.driver.Values.parameters;
 public class NeoGraph implements AutoCloseable {
     private Driver driver = null;
     private String database = "neo4j";
-    private List<Map<String, Object>> methodsToUpdate = new ArrayList<>();
-    List<Map<String, Object>> relationshipsToUpdate = new ArrayList<>();
+    private final List<Map<String, String>> methodsToUpdate = new ArrayList<>();
+    private final List<Map<String, String>> relationshipsToUpdate = new ArrayList<>();
+    private List<String> visited = new ArrayList<>();
+    private List<Pair<String>> visitedEdge = new ArrayList<>();
     private boolean save;
     public NeoGraph(String uri, String user, String password, String database, boolean save) {
         this.database = database;
@@ -45,17 +48,35 @@ public class NeoGraph implements AutoCloseable {
                 String value = entry.getValue().stream().map(SinkTrans::toString).collect(Collectors.joining(","));
                 return String.format("%s: %s", entry.getKey(), value);
             }).collect(Collectors.joining("\n"));
-        Map methodMap = Map.of( "name", sm.getName(), "signature", sm.getSignature(), "transition", transitionStr, "sink", sinkStr);
+        Map<String, String> methodMap = Map.of( "name", sm.getName(), "signature", sm.getSignature(), "transition", transitionStr, "sink", sinkStr,"color", "blue");
         methodsToUpdate.add(methodMap);
     }
-    public void createRelationWithMethods(SootMethod caller, SootMethod callee) {
+    public void addSink(String name, String signature, String sink) {
+        if (!save)
+            return;
+        if (visited.contains(signature))
+            return;
+        visited.add(signature);
+        Map<String, String> methodMap = Map.of( "name", name, "signature", signature, "transition", "", "sink", sink, "color", "red");
+        methodsToUpdate.add(methodMap);
+    }
+    public void updateNeo4jRelation(SootMethod caller, SootMethod callee) {
         if (!save)
             return;
         String fromName = caller.getName();
         String fromSignature = caller.getSignature();
         String toName = callee.getName();
         String toSignature = callee.getSignature();
-        Map relation =  Map.of("fromName", fromName, "fromSignature", fromSignature, "toName", toName, "toSignature", toSignature);
+        internalEdgeUpdate(fromName, fromSignature, toName, toSignature);
+    }
+    public void internalEdgeUpdate(String fromName, String fromSignature, String toName, String toSignature) {
+        if (!save)
+            return;
+        Pair<String> edge = new Pair<>(fromSignature, toSignature);
+        if (visitedEdge.contains(edge))
+            return;
+        visitedEdge.add(edge);
+        Map<String, String> relation =  Map.of("fromName", fromName, "fromSignature", fromSignature, "toName", toName, "toSignature", toSignature);
         relationshipsToUpdate.add(relation);
     }
 

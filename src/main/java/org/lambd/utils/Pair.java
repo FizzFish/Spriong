@@ -1,9 +1,11 @@
 package org.lambd.utils;
 
-public class Pair {
-    private int from;
-    private int to;
-    public Pair(int from, int to) {
+import java.util.Objects;
+
+public class Pair<T> {
+    private T from;
+    private T to;
+    public Pair(T from, T to) {
         this.from = from;
         this.to = to;
     }
@@ -15,6 +17,6 @@ public class Pair {
         return false;
     }
     public int hashCode() {
-        return from * 31 + to;
+        return Objects.hash(from, to);
     }
 }
