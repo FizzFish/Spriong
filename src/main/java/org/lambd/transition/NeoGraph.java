@@ -17,6 +17,7 @@ public class NeoGraph implements AutoCloseable {
     private String database = "neo4j";
     private final List<Map<String, String>> methodsToUpdate = new ArrayList<>();
     private final List<Map<String, String>> sinksToUpdate = new ArrayList<>();
+    private final List<Map<String, String>> sourcesToUpdate = new ArrayList<>();
     private final List<Map<String, String>> relationshipsToUpdate = new ArrayList<>();
     private List<String> visited = new ArrayList<>();
     private List<Pair<String>> visitedEdge = new ArrayList<>();
@@ -61,6 +62,15 @@ public class NeoGraph implements AutoCloseable {
         Map<String, String> sinkMap = Map.of( "name", name, "signature", signature, "sink", sink);
         sinksToUpdate.add(sinkMap);
     }
+    public void addSource(String name, String signature, String source) {
+        if (!save)
+            return;
+        if (visited.contains(signature))
+            return;
+        visited.add(signature);
+        Map<String, String> sourceMap = Map.of( "name", name, "signature", signature, "source", source);
+        sourcesToUpdate.add(sourceMap);
+    }
     public void updateNeo4jRelation(String fromName, String fromSignature, String toName, String toSignature) {
         if (!save)
             return;
@@ -94,10 +104,17 @@ public class NeoGraph implements AutoCloseable {
                 """;
                 tx.run(nodeUpdateQuery, parameters("sinks", sinksToUpdate));
 
+                // 批量更新节点 (Method)
+                nodeUpdateQuery = """
+                    UNWIND sources AS s
+                    CREATE (m:Source {name: s.name, signature: s.signature, sink: s.sink})
+                """;
+                tx.run(nodeUpdateQuery, parameters("sources", sourcesToUpdate));
+
                 // 批量更新关系 (CALL)
                 String relationshipUpdateQuery = """
                     UNWIND $relationships AS rel
-                    MATCH (m1:Method {name: rel.fromName, signature: rel.fromSignature})
+                    MATCH (m1:Method|Source {name: rel.fromName, signature: rel.fromSignature})
                     MATCH (m2:Method|Sink {name: rel.toName, signature: rel.toSignature})
                     MERGE (m1)-[r:CALL]->(m2)
                 """;

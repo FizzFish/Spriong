@@ -68,7 +68,7 @@ public class StmtVisitor {
                 int low = tableSwitchStmt.getLowIndex();
                 int high = tableSwitchStmt.getHighIndex();
                 for (int i = low; i <= high; i++)
-                    conditionMap.put((Stmt) switchStmt.getTarget(i), new Condition(String.valueOf(i), currentCondition));
+                    conditionMap.put((Stmt) switchStmt.getTarget(i - low), new Condition(String.valueOf(i), currentCondition));
             }
             conditionMap.put((Stmt) defaultTarget, new Condition("default", currentCondition));
         }

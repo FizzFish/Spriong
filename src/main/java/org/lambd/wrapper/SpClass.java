@@ -5,10 +5,7 @@ import org.lambd.annotation.Annotation;
 import org.lambd.pointer.StaticField;
 import soot.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SpClass implements Wrapper {
     private SootClass sc;
@@ -17,6 +14,7 @@ public class SpClass implements Wrapper {
     private SootMethod clinitMethod = null;
     public static final String CLINIT = "void <clinit>()";
     private Map<SootField, StaticField> statics = new HashMap<>();
+    private Map<SootField, Set<Type>> RTAFields = new HashMap<>();
     public SpClass(SootClass sc) {
         this.sc = sc;
         state = State.UNSCANNED;
@@ -38,6 +36,12 @@ public class SpClass implements Wrapper {
     }
     public void setClinitMethod(SootMethod sm) {
         clinitMethod = sm;
+    }
+    public void addFieldType(SootField field, Type type) {
+        RTAFields.computeIfAbsent(field, f -> new HashSet<>()).add(type);
+    }
+    public Set<Type> getFieldTypes(SootField field) {
+        return RTAFields.get(field);
     }
     public SootClass getSootClass() {
         return sc;

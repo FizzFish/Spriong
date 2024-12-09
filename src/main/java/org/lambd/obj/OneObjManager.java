@@ -1,9 +1,11 @@
 package org.lambd.obj;
 
+import org.lambd.SootWorld;
 import org.lambd.SpMethod;
 import org.lambd.pointer.*;
 import org.lambd.transformer.SpStmt;
 import org.lambd.utils.Utils;
+import org.lambd.wrapper.SpClass;
 import soot.Local;
 import soot.SootField;
 import soot.Type;
@@ -64,12 +66,16 @@ public class OneObjManager implements ObjManager {
      */
     public void storeField(Local base, SootField field, Local from, SpStmt stmt) {
         VarPointer fromPointer = ptset.getVarPointer(from);
+        SootWorld sw = SootWorld.v();
+        SpClass sc =  sw.getClass(field.getDeclaringClass());
         ptset.getLocalObjs(base).forEach(obj -> {
             InstanceField toPointer = ptset.getInstanceField(obj, field);
             if (obj instanceof FormatObj formatObj)
                 ptset.storeAlias(fromPointer, formatObj, field, stmt);
             ptset.copy(fromPointer, toPointer);
+            toPointer.realObjs().forEach(realObj -> sc.addFieldType(field, realObj.getType()));
         });
+
     }
 
     /**

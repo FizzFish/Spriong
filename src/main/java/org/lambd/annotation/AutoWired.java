@@ -17,8 +17,7 @@ public class AutoWired {
     // grpc services
     private Map<SootClass, List<String>> services = new HashMap<>();
     // replace with actual source feature
-    private List<String> entryPoints = List.of("source");
-    private Map<String, Integer> sinks = Map.of("send",0);
+    private List<String> entryPoints = List.of("void source()");
     public void addBean(RefType type, SpClass cls)
     {
         autowrireds.put(type, cls);
@@ -60,15 +59,10 @@ public class AutoWired {
             analyzeAnnotation(sc);
             for (SootMethod sm: sc.getMethods()) {
                 analyzeAnnotation(sm);
-                String name = sm.getName();
-                if (entryPoints.contains(name))
+                String subSignature = sm.getSubSignature();
+                if (entryPoints.contains(sm.getSubSignature()))
                     SootWorld.v().addEntryPoint(sm);
-                if (sinks.containsKey(name)) {
-                    // <javax.script.ScriptEngine: java.lang.Object eval(java.lang.String)>
-                    String signature = String.format("<%s: %s>", sc.getName(), sm.getSignature());
-                    SootWorld.v().addTransition(signature, new SinkTrans(signature, sinks.get(name), Weight.ONE));
-                }
-                if (sm.getSubSignature().equals(SpClass.CLINIT)) {
+                if (subSignature.equals(SpClass.CLINIT)) {
                     SpClass spc = sw.getClass(sc);
                     spc.setClinitMethod(sm);
                 }

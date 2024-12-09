@@ -84,8 +84,14 @@ public class SootWorld {
         // authenticate or some transport callback
         // this.declaringClass, this.name, this.parameterTypes, this.returnType
         String signature = methodRef.getSignature();
+        String subSignature = methodRef.getSubSignature().getString();
         if (methodRefMap.containsKey(signature)) {
             methodRefMap.get(signature).forEach(transition -> {
+                transition.apply(caller, stmt);
+            });
+            return true;
+        } else if (methodRefMap.containsKey(subSignature)) {
+            methodRefMap.get(subSignature).forEach(transition -> {
                 transition.apply(caller, stmt);
             });
             return true;
@@ -167,6 +173,7 @@ public class SootWorld {
             SootMethod sm = entryPoints.iterator().next();
             entryPoints.remove(sm);
             logger.info("EntryPoint {}", sm);
+            graph.addSource(sm.getName(), sm.getSignature(), "source");
             visitMethod(getMethod(sm), method -> handleSource(method));
         }
 //        if(!updateCallers.isEmpty()) {
