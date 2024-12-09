@@ -99,14 +99,14 @@ public class NeoGraph implements AutoCloseable {
 
                 // 批量更新节点 (Method)
                 nodeUpdateQuery = """
-                    UNWIND sinks AS s
+                    UNWIND $sinks AS s
                     CREATE (m:Sink {name: s.name, signature: s.signature, sink: s.sink})
                 """;
                 tx.run(nodeUpdateQuery, parameters("sinks", sinksToUpdate));
 
                 // 批量更新节点 (Method)
                 nodeUpdateQuery = """
-                    UNWIND sources AS s
+                    UNWIND $sources AS s
                     CREATE (m:Source {name: s.name, signature: s.signature, sink: s.sink})
                 """;
                 tx.run(nodeUpdateQuery, parameters("sources", sourcesToUpdate));

@@ -16,7 +16,7 @@ public class AutoWired {
     private Map<RefType, SpClass> autowrireds = new HashMap<>();
     // grpc services
     private Map<SootClass, List<String>> services = new HashMap<>();
-    // replace with actual source feature
+    // 一些额外的入口点
     private List<String> entryPoints = List.of("void source()");
     public void addBean(RefType type, SpClass cls)
     {
@@ -56,8 +56,12 @@ public class AutoWired {
     public void scanAppClasses() {
         SootWorld sw = SootWorld.v();
         for (SootClass sc: Scene.v().getApplicationClasses()) {
+            if (sc.isInterface())
+                continue;
             analyzeAnnotation(sc);
             for (SootMethod sm: sc.getMethods()) {
+                if (sm.isAbstract() || sm.isPhantom())
+                    continue;
                 analyzeAnnotation(sm);
                 String subSignature = sm.getSubSignature();
                 if (entryPoints.contains(sm.getSubSignature()))
@@ -81,8 +85,12 @@ public class AutoWired {
             return;
         SootClass outerClass = sc.getOuterClass();
         List<String> serivceMethods = services.get(outerClass);
+        try {
+            FastHierarchy fastHierarchy = Scene.v().getFastHierarchy();
+        } catch (Exception e) {
+            return;
+        }
 
-        FastHierarchy fastHierarchy = Scene.v().getFastHierarchy();
         SootWorld sw = SootWorld.v();
         for (SootClass subClass: fastHierarchy.getSubclassesOf(sc)) {
             for (SootMethod sm: subClass.getMethods()) {

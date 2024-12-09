@@ -56,7 +56,7 @@ public class SinkTrans implements Transition {
     public void apply(SpMethod caller, SpStmt stmt) {
         SootMethodRef methodRef = stmt.getStmt().getInvokeExpr().getMethodRef();
         String signature = methodRef.getSignature();
-        if (signature.equals(sinkDes)) {
+        if (signature.contains(sinkDes)) {
             NeoGraph graph = SootWorld.v().getGraph();
             SootMethod sm = caller.getSootMethod();
             SootWorld.v().getGraph().addSink(methodRef.getName(), signature, "sink:  " + argIndex);
