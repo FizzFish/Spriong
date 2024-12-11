@@ -7,6 +7,8 @@ import org.lambd.wrapper.SpClass;
 import soot.SootField;
 import soot.Type;
 
+import javax.annotation.Nullable;
+
 public class SourceObj extends RealObj {
     public SourceObj(Type type, SpStmt stmt) {
         super(type, stmt);
@@ -17,9 +19,20 @@ public class SourceObj extends RealObj {
     }
     public InstanceField fieldPointer(SootField field) {
         SootWorld sw = SootWorld.v();
-        SpClass sc =  sw.getClass(field.getDeclaringClass());
+
         InstanceField instanceField = fieldPointer.computeIfAbsent(field, f -> new InstanceField(this, field));
-        sc.getFieldTypes(field).forEach(t -> instanceField.add(new SourceObj(t, stmt)));
+        if (field.getName().equals("[*]")) {
+            instanceField.add(new RealObj(field.getType(), stmt));
+        } else {
+            SpClass sc = sw.getClass(field.getDeclaringClass());
+            sc.getFieldTypes(field).forEach(t -> instanceField.add(new SourceObj(t, stmt)));
+        }
         return instanceField;
+    }
+    @Override
+    public Obj castClone(SpStmt stmt, @Nullable Type newType) {
+        if (newType == null || newType.equals(type))
+            return this;
+        return new SourceObj(newType, stmt);
     }
 }

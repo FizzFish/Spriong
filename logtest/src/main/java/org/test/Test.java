@@ -19,19 +19,3 @@ class Wrapper {
         f.foo(a);
     }
 }
-class Base {
-    public void foo(String a) {
-        System.out.println("Base");
-    }
-}
-class A extends Base {
-    public void foo(String a) {
-        System.out.println("A");
-    }
-}
-class Sink extends Base {
-    public void foo(String s) {
-        SinkClass sc = new SinkClass();
-        sc.anInstanceSink(s);
-    }
-}

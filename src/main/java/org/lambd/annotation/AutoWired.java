@@ -86,18 +86,18 @@ public class AutoWired {
         SootClass outerClass = sc.getOuterClass();
         List<String> serivceMethods = services.get(outerClass);
         try {
+            // 有时候这一步会出错
             FastHierarchy fastHierarchy = Scene.v().getFastHierarchy();
+            SootWorld sw = SootWorld.v();
+            for (SootClass subClass: fastHierarchy.getSubclassesOf(sc)) {
+                for (SootMethod sm: subClass.getMethods()) {
+                    // add grpc entry
+                    if (serivceMethods.contains(sm.getName()))
+                        sw.addEntryPoint(sm);
+                }
+            }
         } catch (Exception e) {
             return;
-        }
-
-        SootWorld sw = SootWorld.v();
-        for (SootClass subClass: fastHierarchy.getSubclassesOf(sc)) {
-            for (SootMethod sm: subClass.getMethods()) {
-                // add grpc entry
-                if (serivceMethods.contains(sm.getName()))
-                    sw.addEntryPoint(sm);
-            }
         }
     }
     private void analyzeAnnotation(Object obj) {

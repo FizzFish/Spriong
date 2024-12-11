@@ -4,10 +4,18 @@ import org.lambd.SootWorld;
 import org.lambd.annotation.Annotation;
 import org.lambd.pointer.StaticField;
 import soot.*;
+import soot.jimple.InvokeStmt;
+import soot.jimple.StaticInvokeExpr;
 
 import java.util.*;
 
 public class SpClass implements Wrapper {
+    enum State {
+        UNSCANNED,
+        SCANNED,
+        VISITED,
+        FINISHED,
+    }
     private SootClass sc;
     private State state;
     private List<Annotation> annotionList = new ArrayList<>();
@@ -54,9 +62,4 @@ public class SpClass implements Wrapper {
                 f -> new StaticField(field));
     }
 }
-enum State {
-    UNSCANNED,
-    SCANNED,
-    VISITED,
-    FINISHED,
-}
+

@@ -39,7 +39,6 @@ public class FormatObj extends Obj implements Index {
     public FormatObj(FormatObj parent, SootField field) {
         super(field.getType(), parent.getStmt());
         this.index = parent.index;
-//        resolve(parent.realObjs, field);
         this.fields.addAll(parent.fields);
         this.fields.add(field);
         orignal = parent.orignal;
@@ -50,8 +49,6 @@ public class FormatObj extends Obj implements Index {
         resolved = true;
     }
     private void resolve() {
-//        realObjs = objs.stream().map(o -> o.fieldPointer(field))
-//                    .flatMap(InstanceField::realObjs).collect(Collectors.toSet());
         Set<RealObj> objs = orignal.realObjs;
         for (SootField field : fields) {
             objs = objs.stream().map(o -> o.fieldPointer(field))
@@ -100,6 +97,8 @@ public class FormatObj extends Obj implements Index {
 
     @Override
     public boolean real() {
+        if (!resolved)
+            resolve();
         return !realObjs.isEmpty();
     }
 }

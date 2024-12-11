@@ -3,6 +3,7 @@ package org.lambd;
 import com.google.common.collect.HashBasedTable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.json.JsonConfiguration;
 import org.lambd.condition.Condition;
 import org.lambd.condition.Constraint;
 import org.lambd.obj.*;
@@ -13,6 +14,7 @@ import org.lambd.transformer.SpStmt;
 import org.lambd.transition.Effect;
 import soot.*;
 import soot.jimple.*;
+import soot.jimple.internal.JVirtualInvokeExpr;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -121,8 +123,6 @@ public class StmtVisitor {
                 logger.warn("No base for invoke: {}", invoke);
             } else if (type instanceof RefType rt && rt.getSootClass().isInterface() && vp.allFake()) {
                 // 某些情况下可能没有实际的变量，例如Cls.field或者由某些未分析的代码实例化
-                // 检查是否需要创建Condition
-                // 这里先不分析
                 cg.getCallee(invoke, rt, calleeSet);
             } else {
                  // 找到所有可能得类型
@@ -144,8 +144,31 @@ public class StmtVisitor {
             calleeSet.add(callee);
         }
     }
+    private SootMethodRef getSignature(SootClass sc, String subSignature) {
+        SootMethod sm = sc.getMethod(subSignature);
+        for (Unit u : sm.getActiveBody().getUnits())
+            if (u instanceof InvokeStmt invokeStmt)
+                return invokeStmt.getInvokeExpr().getMethodRef();
+        return null;
+    }
+    private SootMethodRef analyzeLambda(InvokeExpr invoke) {
+        SootClass sc = invoke.getMethodRef().getDeclaringClass();
+        String acceptSignature = "void accept(java.lang.Object)";
+        // void lambda$main$0(java.lang.String,java.lang.String,org.test.Base)
+        SootMethodRef methodRef = getSignature(sc, acceptSignature);
+        assert methodRef != null;
+        methodRef = getSignature(container.getSootMethod().getDeclaringClass(), methodRef.getSubSignature().getString());
+        return methodRef;
+    }
     private void handleInvoke(SpStmt spStmt, InvokeExpr invoke) {
         SootWorld world = SootWorld.v();
+        if (invoke.getMethodRef().getName().equals("bootstrap$")) {
+            SootMethodRef lambdaRef = analyzeLambda(invoke);
+//            public JVirtualInvokeExpr(Value base, SootMethodRef methodRef, List<? extends Value> args) {
+            System.err.println(lambdaRef);
+            JVirtualInvokeExpr lambdaInvoke = new JVirtualInvokeExpr(invoke.getArg(0), lambdaRef, invoke.getArgs());
+        }
+
         boolean quickInvoke = world.quickMethodRef(invoke.getMethodRef(), container, spStmt);
         boolean systemInvoke = !invoke.getMethodRef().getDeclaringClass().isApplicationClass();
         if (!quickInvoke && !systemInvoke) {
@@ -204,7 +227,7 @@ public class StmtVisitor {
      * 这里想解决callgraph中的环问题，但没有处理好[TODO]
      */
     private void apply(SootMethod callee, SpStmt stmt) {
-        if (callee == null)
+        if (callee == null || callee.isPhantom() || callee.isAbstract())
             return;
         applyInternal(callee, stmt);
         // update neo4j callgraph

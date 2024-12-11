@@ -22,10 +22,10 @@ public class BaseTransition implements Transition {
     }
     @Override
     public void apply(SpMethod method, SpStmt stmt) {
-        Weight relation = Weight.ONE;
-        if (kind == 1)
-            relation = Weight.COPY;
-        method.handleTransition(stmt, from, to, relation);
+        // kind: 0->pointer copy; 1->deep copy; 2->list.add; 3->iterator(); 4->iterator.next
+        if (kind < 2)
+            method.handleTransition(stmt, from, to, kind == 0 ? Weight.ONE : Weight.COPY);
+        else
+            method.handleCollectionOp(stmt, from, to, kind);
     }
-    // Getters and Setters
 }

@@ -11,6 +11,20 @@ import java.util.stream.Stream;
 public abstract class Pointer {
     // 理论上同一个Condition下只应该有一个Obj，保持强更新和流敏感
     private Map<Condition, Obj> objMap = new HashMap<>();
+    private Set<Pointer> children = new HashSet<>();
+    private Pointer iteratorFrom;
+    public void addChild(Pointer child) {
+        children.add(child);
+    }
+    public Set<Pointer> getChildren() {
+        return children;
+    }
+    public void setIterator(Pointer from) {
+        iteratorFrom = from;
+    }
+    public Pointer getIterator() {
+        return iteratorFrom;
+    }
     public Pointer() {
     }
     public Set<Obj> getObjs() {

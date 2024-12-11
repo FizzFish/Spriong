@@ -3,6 +3,7 @@ package org.lambd;
 import org.lambd.annotation.Annotation;
 import org.lambd.annotation.AnnotationType;
 import org.lambd.obj.*;
+import org.lambd.pointer.Pointer;
 import org.lambd.pointer.PointerToSet;
 import org.lambd.transformer.SpStmt;
 import org.lambd.transition.*;
@@ -119,6 +120,27 @@ public class SpMethod implements Wrapper {
         }
         if (fromVar instanceof Local l1 && toVar instanceof Local l2)
             ptset.update(l1, l2, w, stmt, type);
+    }
+    public void handleCollectionOp(SpStmt stmt, int from, int to, int op) {
+        // kind: 0->pointer copy; 1->deep copy; 2->list.add; 3->iterator(); 4->iterator.next
+        Value fromVar = getParameter(stmt, from);
+        Value toVar = getParameter(stmt, to);
+        if (fromVar == toVar)
+            return;
+        if (fromVar instanceof Local l1 && toVar instanceof Local l2) {
+            Pointer fromPointer = ptset.getVarPointer(l1);
+            Pointer toPointer = ptset.getVarPointer(l2);
+            if (op == 2)
+                toPointer.addChild(fromPointer);
+            else if (op == 3)
+                toPointer.setIterator(fromPointer);
+            else {
+                for (Pointer child : fromPointer.getIterator().getChildren()) {
+                    toPointer.copyFrom(child);
+                }
+            }
+
+        }
     }
     public void handleLoadTransition(SpStmt stmt) {
         // packages(String[])($7)

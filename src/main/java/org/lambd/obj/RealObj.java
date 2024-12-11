@@ -14,9 +14,7 @@ public class RealObj extends Obj {
 
     @Override
     public Obj castClone(SpStmt stmt, @Nullable Type newType) {
-        if (newType == null || newType.equals(type))
-            return this;
-        return new RealObj(newType, stmt);
+        return this;
     }
 
     @Override
